@@ -1,0 +1,53 @@
+# ── Secrets ─────────────────────────────────────────────────────
+.env
+*.key
+*.pem
+
+# ── Python ──────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ── Données brutes (trop lourdes pour Git) ──────────────────────
+data/raw/*.csv
+data/raw/*.json
+data/raw/*.geojson
+data/raw/*.zip
+# Sauf le fichier gares déjà présent (suivi manuellement)
+!data/raw/liste-des-gares.csv
+
+# ── Modèles ML (versionnés via MLflow, pas Git) ─────────────────
+models/*.pkl
+# Sauf les modèles finaux exportés pour la démo
+!models/kmeans_poi.pkl
+!models/knn_recommandation.pkl
+
+# ── Airflow ──────────────────────────────────────────────────────
+airflow/logs/
+
+# ── Power BI ─────────────────────────────────────────────────────
+*.pbix
+
+# ── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Jupyter ──────────────────────────────────────────────────────
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# ── Streamlit cache ──────────────────────────────────────────────
+.streamlit/secrets.toml
+
+# ── Logs ────────────────────────────────────────────────────────
+*.log
+streamlit_out*.txt
+streamlit_err*.txt
+
+# ── MLflow ──────────────────────────────────────────────────────
+mlruns/
+mlartifacts/

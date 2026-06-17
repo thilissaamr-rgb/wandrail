@@ -1,0 +1,130 @@
+services:
+
+  # SERVICE 1 : PostgreSQL pour ton projet
+  postgres:
+    image: postgres:16
+    container_name: tourisme_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 00000
+      POSTGRES_DB: tourisme_train
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SERVICE 2 : PostgreSQL pour Airflow (base séparée)
+  postgres_airflow:
+    image: postgres:16
+    container_name: airflow_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SERVICE 3 : Airflow — initialisation (tourne une seule fois)
+  airflow_init:
+    image: apache/airflow:2.8.1
+    container_name: airflow_init
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    command: bash -c "airflow db init && (airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@tourisme.fr || true)"
+    depends_on:
+      postgres_airflow:
+        condition: service_healthy
+
+  # SERVICE 4 : Airflow Webserver (interface web)
+  airflow_webserver:
+    image: apache/airflow:2.8.1
+    container_name: airflow_webserver
+    command: webserver --worker-timeout 300
+    ports:
+      - "8085:8080"
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__WEBSERVER__SECRET_KEY: tourisme_train_secret
+      AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: 300
+      AIRFLOW__WEBSERVER__WORKERS: 2
+      DB_HOST: tourisme_postgres
+      DB_PORT: 5432
+      DB_NAME: tourisme_train
+      DB_USER: postgres
+      DB_PASSWORD: 00000
+      DATATOURISME_API_KEY: 0f58925d-4b95-4ca2-b41b-9d7ea9527421
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./scripts:/opt/airflow/scripts
+      - ./data:/opt/airflow/data
+    depends_on:
+      postgres_airflow:
+        condition: service_healthy
+      airflow_init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # SERVICE 5 : Airflow Scheduler
+  airflow_scheduler:
+    image: apache/airflow:2.8.1
+    container_name: airflow_scheduler
+    command: scheduler
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      DB_HOST: tourisme_postgres
+      DB_PORT: 5432
+      DB_NAME: tourisme_train
+      DB_USER: postgres
+      DB_PASSWORD: 00000
+      DATATOURISME_API_KEY: 0f58925d-4b95-4ca2-b41b-9d7ea9527421
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./scripts:/opt/airflow/scripts
+      - ./data:/opt/airflow/data
+    depends_on:
+      postgres_airflow:
+        condition: service_healthy
+      airflow_init:
+        condition: service_completed_successfully
+
+  # SERVICE 6 : Application Streamlit
+  streamlit:
+    build: .
+    container_name: tourisme_streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      DB_HOST: tourisme_postgres
+      DB_PORT: 5432
+      DB_NAME: tourisme_train
+      DB_USER: postgres
+      DB_PASSWORD: 00000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  airflow_postgres_data:
