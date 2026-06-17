@@ -49,31 +49,42 @@ BBOX_PDL = "46.3,-2.6,48.4,1.0"
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 # Pause entre les requetes (respecter les limites de l'API publique)
-PAUSE_SECONDES = 3
+PAUSE_SECONDES = 12
+
+# Instances Overpass de secours si l'instance principale est saturee
+OVERPASS_MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+]
 
 
-def requete_overpass(query: str, description: str) -> list:
+def requete_overpass(query: str, description: str, max_retries: int = 3) -> list:
     """
-    Envoie une requete Overpass QL et retourne la liste des elements.
-    En cas d'erreur, retourne une liste vide plutot que d'interrompre le script.
+    Envoie une requete Overpass QL avec retry sur plusieurs instances.
+    Attente exponentielle entre les tentatives pour gerer les 429.
     """
     print(f"  Requete OSM : {description}...")
-    try:
-        r = requests.post(
-            OVERPASS_URL,
-            data={"data": query},
-            timeout=120,
-            headers={"User-Agent": "Wandrail-Project/1.0 (M1 BDIA Sup de Vinci)"}
-        )
-        r.raise_for_status()
-        elements = r.json().get("elements", [])
-        print(f"    -> {len(elements)} elements recuperes")
-        time.sleep(PAUSE_SECONDES)
-        return elements
-    except Exception as e:
-        print(f"    -> Erreur : {e}")
-        time.sleep(PAUSE_SECONDES)
-        return []
+    for attempt in range(max_retries):
+        url = OVERPASS_MIRRORS[attempt % len(OVERPASS_MIRRORS)]
+        try:
+            r = requests.post(
+                url,
+                data={"data": query},
+                timeout=120,
+                headers={"User-Agent": "Wandrail-Project/1.0 (M1 BDIA Sup de Vinci)"}
+            )
+            r.raise_for_status()
+            elements = r.json().get("elements", [])
+            print(f"    -> {len(elements)} elements recuperes (instance {attempt + 1})")
+            time.sleep(PAUSE_SECONDES)
+            return elements
+        except Exception as e:
+            wait = PAUSE_SECONDES * (2 ** attempt)
+            print(f"    -> Erreur tentative {attempt + 1} : {e} - pause {wait}s avant retry")
+            time.sleep(wait)
+    print(f"    -> Echec apres {max_retries} tentatives. Donnees OSM ignorees pour : {description}")
+    return []
 
 
 print("=" * 60)
@@ -133,7 +144,7 @@ for el in elements_resto:
         "longitude"     : float(lon),
         "telephone"     : tags.get("phone", tags.get("contact:phone", ""))[:50] or None,
         "site_web"      : tags.get("website", tags.get("contact:website", ""))[:500] or None,
-        "note_moyenne"  : float(tags.get("stars", 0) or 0),
+        "note_moyenne"  : float(tags.get("stars", 0) or 0) if str(tags.get("stars", "0")).replace(".", "").isdigit() else 0.0,
         "region"        : "Pays de la Loire",
         "source"        : "osm",
         "date_maj"      : None,

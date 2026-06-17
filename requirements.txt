@@ -1,27 +1,22 @@
-# ── Base données ─────────────────────────────────────────────────
+# Base donnees
 pandas==2.2.0
 numpy==1.26.4
 sqlalchemy==2.0.25
 psycopg2-binary==2.9.9
 python-dotenv==1.0.0
 
-# ── API & collecte ───────────────────────────────────────────────
+# API
 requests==2.31.0
 
-# ── Application Streamlit ────────────────────────────────────────
+# Application Streamlit
 streamlit==1.31.0
 folium==0.15.1
 streamlit-folium==0.18.0
 plotly==5.18.0
 
-# ── Machine Learning ─────────────────────────────────────────────
+# Machine Learning
 scikit-learn==1.4.0
-mlflow==2.11.1
 
-# ── Visualisation & analyse ──────────────────────────────────────
+# Visualisation
 matplotlib==3.8.2
 seaborn==0.13.2
-jupyter==1.0.0
-
-# ── Pipeline (optionnel — uniquement si Airflow utilisé) ─────────
-apscheduler==3.10.4

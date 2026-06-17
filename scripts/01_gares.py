@@ -47,6 +47,17 @@ CSV_LOCAL = os.path.join(DATA_PATH, "liste-des-gares.csv")
 # Codes departement des 5 departements Pays de la Loire
 CODES_DEPT_PDL = {"44", "49", "53", "72", "85"}
 
+# Mapping : nom de departement dans la colonne DEPARTEMEN -> code dept
+# Le CSV SNCF stocke le nom en majuscules sans accent (ex: "VENDEE" et non "VENDEE")
+NOMS_DEPT_PDL = {
+    "LOIRE-ATLANTIQUE": "44",
+    "MAINE-ET-LOIRE":   "49",
+    "MAYENNE":          "53",
+    "SARTHE":           "72",
+    "VENDEE":           "85",
+    "VENDÉE":      "85",  # forme avec accent si presente
+}
+
 # Noms correspondants pour l'affichage et l'enrichissement
 NOM_DEPT = {
     "44": "Loire-Atlantique",
@@ -56,7 +67,7 @@ NOM_DEPT = {
     "85": "Vendee",
 }
 
-# Bounding box geographique PDL (securite supplementaire au filtre dept)
+# Bounding box geographique PDL (validation complementaire)
 LAT_MIN, LAT_MAX = 46.3, 48.4
 LON_MIN, LON_MAX = -2.6,  1.0
 
@@ -216,59 +227,43 @@ df_clean["LONGITUDE"] = pd.to_numeric(df_clean.get("LONGITUDE", pd.Series()), er
 df_clean = df_clean.dropna(subset=["LATITUDE", "LONGITUDE"])
 
 
-# Extraction du code departement depuis CODE_UIC
-# Format UIC SNCF : 87DDDXXX ou 87DDXXXX - les premiers chiffres apres 87 donnent le dept
 def extraire_code_dept(row):
     """
-    Extrait le code departement depuis le code UIC SNCF.
-    Le code UIC commence par 87, suivi du code departement sur 2 ou 3 chiffres.
+    Extrait le code departement depuis la colonne DEPARTEMENT (nom en majuscules).
+    La colonne DEPARTEMEN du CSV SNCF contient le nom du departement en clair
+    (ex: "LOIRE-ATLANTIQUE"), pas le code numerique.
+    Les codes UIC SNCF (87XXXXXX) n'encodent pas le departement dans leurs chiffres.
     """
-    uic = str(row.get("CODE_UIC", "") or "").strip().replace(" ", "")
+    dep_raw = str(row.get("DEPARTEMENT", "") or "").strip().upper()
 
-    # Tenter extraction depuis UIC (format 87DDXXXXX)
-    if uic.startswith("87") and len(uic) >= 5:
-        candidates = [uic[2:4], uic[2:3]]
-        for cand in candidates:
-            if cand in CODES_DEPT_PDL:
-                return cand
+    # Correspondance exacte
+    if dep_raw in NOMS_DEPT_PDL:
+        return NOMS_DEPT_PDL[dep_raw]
 
-    # Tenter depuis la colonne DEPARTEMENT si disponible
-    dep_raw = str(row.get("DEPARTEMENT", "") or "").strip()
-    if dep_raw:
-        # Peut contenir "44 - Loire-Atlantique" ou juste "44"
-        dep_num = dep_raw.split("-")[0].strip().split(" ")[0].strip()
-        if dep_num in CODES_DEPT_PDL:
-            return dep_num
+    # Correspondance partielle (ex: "VENDEE (85)" ou "LOIRE ATLANTIQUE")
+    for nom, code in NOMS_DEPT_PDL.items():
+        if nom in dep_raw:
+            return code
 
     return ""
 
 
 df_clean["CODE_DEPT"] = df_clean.apply(extraire_code_dept, axis=1)
 
-# -- Filtre principal : code departement PDL
+# -- Filtre principal : nom de departement PDL (colonne DEPARTEMENT du CSV)
 avant = len(df_clean)
-df_pdl_dept = df_clean[df_clean["CODE_DEPT"].isin(CODES_DEPT_PDL)].copy()
-print(f"  Filtre departement PDL : {avant} -> {len(df_pdl_dept)} gares")
+df_pdl = df_clean[df_clean["CODE_DEPT"].isin(CODES_DEPT_PDL)].copy()
+print(f"  Filtre departement PDL (nom) : {avant} -> {len(df_pdl)} gares")
 
-# -- Fallback : filtre geographique si le filtre dept renvoie trop peu
-if len(df_pdl_dept) < 50:
-    print("  Filtre departement insuffisant - application du filtre geographique en complement")
-    df_pdl_geo = df_clean[
-        (df_clean["LATITUDE"].between(LAT_MIN, LAT_MAX))
-        & (df_clean["LONGITUDE"].between(LON_MIN, LON_MAX))
-    ].copy()
-    # Combiner les deux et deduplicer
-    df_pdl = pd.concat([df_pdl_dept, df_pdl_geo]).drop_duplicates(
-        subset=["LIBELLE", "LATITUDE", "LONGITUDE"]
-    )
-    print(f"  Apres combinaison dept + geo : {len(df_pdl)} gares")
-else:
-    # Filtrer aussi par bbox pour eliminer les cas limites
-    df_pdl = df_pdl_dept[
-        (df_pdl_dept["LATITUDE"].between(LAT_MIN, LAT_MAX))
-        & (df_pdl_dept["LONGITUDE"].between(LON_MIN, LON_MAX))
-    ].copy()
-    print(f"  Apres filtre geo complementaire : {len(df_pdl)} gares")
+# Validation geographique : eliminer les rares cas hors bbox
+# (gares frontieres parfois rattachees administrativement a un autre dept)
+nb_avant_geo = len(df_pdl)
+df_pdl = df_pdl[
+    (df_pdl["LATITUDE"].between(LAT_MIN, LAT_MAX))
+    & (df_pdl["LONGITUDE"].between(LON_MIN, LON_MAX))
+].copy()
+if nb_avant_geo != len(df_pdl):
+    print(f"  Apres validation bbox : {len(df_pdl)} gares ({nb_avant_geo - len(df_pdl)} ecartees hors PDL)")
 
 # Nettoyage des textes
 for col in ["LIBELLE", "COMMUNE"]:

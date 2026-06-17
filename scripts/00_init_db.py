@@ -1,7 +1,7 @@
 """
-Script 00 — Initialisation de la base de données
-Crée l'architecture Médaillon complète : Bronze / Silver / Gold
-À exécuter UNE SEULE FOIS au démarrage du projet.
+Script 00 - Initialisation de la base de donnees
+Cree l'architecture Medallion complete : Bronze / Silver / Gold
+A executer UNE SEULE FOIS au demarrage du projet.
 """
 
 import sys, os
@@ -20,19 +20,19 @@ def get_engine():
 engine = get_engine()
 
 print("=" * 60)
-print("🏗️  INIT DB — Architecture Médaillon Bronze/Silver/Gold")
+print("INIT DB - Architecture Medallion Bronze/Silver/Gold")
 print("=" * 60)
 
 SQL = """
 -- ============================================================
--- SCHÉMAS
+-- SCHEMAS
 -- ============================================================
 CREATE SCHEMA IF NOT EXISTS bronze;
 CREATE SCHEMA IF NOT EXISTS silver;
 CREATE SCHEMA IF NOT EXISTS gold;
 
 -- ============================================================
--- BRONZE — Données brutes (telles quelles, jamais modifiées)
+-- BRONZE - Donnees brutes (telles quelles, jamais modifiees)
 -- ============================================================
 DROP TABLE IF EXISTS bronze.gares_raw     CASCADE;
 DROP TABLE IF EXISTS bronze.poi_raw       CASCADE;
@@ -54,7 +54,7 @@ CREATE TABLE bronze.gares_raw (
 
 CREATE TABLE bronze.poi_raw (
     id              SERIAL PRIMARY KEY,
-    json_brut       TEXT,         -- JSON complet de l'API
+    json_brut       TEXT,
     identifiant     TEXT,
     nom             TEXT,
     type_raw        TEXT,
@@ -78,7 +78,7 @@ CREATE TABLE bronze.lignes_raw (
 
 CREATE TABLE bronze.mobilites_raw (
     id              SERIAL PRIMARY KEY,
-    type_source     TEXT,        -- 'nantes_api', 'gtfs', 'gbfs'
+    type_source     TEXT,
     json_brut       TEXT,
     nom_station     TEXT,
     type_mobilite   TEXT,
@@ -89,7 +89,7 @@ CREATE TABLE bronze.mobilites_raw (
 );
 
 -- ============================================================
--- SILVER — Données nettoyées et structurées
+-- SILVER - Donnees nettoyees et structurees
 -- ============================================================
 DROP TABLE IF EXISTS silver.population     CASCADE;
 DROP TABLE IF EXISTS silver.cyclables      CASCADE;
@@ -147,7 +147,7 @@ CREATE TABLE silver.lignes (
 
 CREATE TABLE silver.mobilites (
     id                SERIAL PRIMARY KEY,
-    type_mobilite     VARCHAR(50),    -- 'velo', 'bus', 'tram', 'parking_velo'
+    type_mobilite     VARCHAR(50),
     nom_station       VARCHAR(200),
     commune           VARCHAR(100),
     latitude          FLOAT,
@@ -167,7 +167,7 @@ CREATE TABLE silver.poi_enrichi (
     id_gare_3         INTEGER REFERENCES silver.gares(id),
     nom_gare          VARCHAR(200),
     distance_gare_km  FLOAT,
-    temps_marche_min  FLOAT,          -- distance / 5km/h * 60
+    temps_marche_min  FLOAT,
     categorie         VARCHAR(100),
     region            VARCHAR(100)
 );
@@ -206,6 +206,8 @@ CREATE TABLE silver.cyclables (
     type_voie   VARCHAR(100),
     longueur_km FLOAT,
     commune     VARCHAR(100),
+    latitude    FLOAT,
+    longitude   FLOAT,
     date_extraction TIMESTAMP DEFAULT NOW()
 );
 
@@ -221,9 +223,10 @@ CREATE TABLE silver.population (
 );
 
 -- ============================================================
--- GOLD — Schéma en étoile (Power BI + ML)
+-- GOLD - Schema en etoile (Power BI + ML)
 -- ============================================================
-DROP TABLE IF EXISTS gold.fait_meteo_destination   CASCADE;
+DROP TABLE IF EXISTS gold.isochrones                CASCADE;
+DROP TABLE IF EXISTS gold.fait_meteo_destination    CASCADE;
 DROP TABLE IF EXISTS gold.fait_evenements           CASCADE;
 DROP TABLE IF EXISTS gold.fait_co2                  CASCADE;
 DROP TABLE IF EXISTS gold.fait_voyage               CASCADE;
@@ -277,17 +280,17 @@ CREATE TABLE gold.dim_profil (
     distance_max_gare_km  INTEGER,
     duree_sejour_jours    INTEGER,
     preferences           TEXT,
-    emoji                 VARCHAR(10)
+    icone                 VARCHAR(20)
 );
 
 CREATE TABLE gold.dim_transport (
     id              SERIAL PRIMARY KEY,
     nom             VARCHAR(50),
-    emoji           VARCHAR(10),
+    icone           VARCHAR(20),
     co2_g_km        FLOAT,
     vitesse_moy_kmh INTEGER,
     cout_moy_eur_km FLOAT,
-    eco_score       INTEGER   -- 1 (polluant) à 5 (zéro émission)
+    eco_score       INTEGER
 );
 
 CREATE TABLE gold.dim_temps (
@@ -366,6 +369,19 @@ CREATE TABLE gold.recommandations (
     nb_poi_match    INTEGER
 );
 
+CREATE TABLE gold.isochrones (
+    id               SERIAL PRIMARY KEY,
+    nom_gare_depart  VARCHAR(100),
+    lat_depart       FLOAT,
+    lon_depart       FLOAT,
+    duree_label      VARCHAR(10),
+    duree_secondes   INTEGER,
+    nb_gares_access  INTEGER DEFAULT 0,
+    gares_accessibles TEXT,
+    methode          VARCHAR(20) DEFAULT 'approximation',
+    date_calcul      TIMESTAMP DEFAULT NOW()
+);
+
 -- INDEX pour les performances Power BI
 CREATE INDEX idx_dim_gare_commune   ON gold.dim_gare(commune);
 CREATE INDEX idx_dim_poi_categorie  ON gold.dim_poi(categorie);
@@ -377,15 +393,15 @@ CREATE INDEX idx_silver_poi_cat     ON silver.poi(categorie);
 CREATE INDEX idx_silver_gares_dep   ON silver.gares(code_departement);
 """
 
-print("\n🗑️  Suppression des anciennes tables...")
-print("🏗️  Création des schémas Bronze / Silver / Gold...")
+print("\nSuppression des anciennes tables...")
+print("Creation des schemas Bronze / Silver / Gold...")
 
 with engine.connect() as conn:
     conn.execute(text(SQL))
     conn.commit()
 
-print("✅ Architecture complète créée !")
-print("\n📋 Résumé des tables créées :")
+print("Architecture complete creee.")
+print("\nResume des tables creees :")
 with engine.connect() as conn:
     result = conn.execute(text("""
         SELECT table_schema, table_name
@@ -398,6 +414,6 @@ with engine.connect() as conn:
         if row[0] != schema_actuel:
             print(f"\n  [{row[0].upper()}]")
             schema_actuel = row[0]
-        print(f"    ✓ {row[1]}")
+        print(f"    {row[1]}")
 
-print("\n🎉 Base de données prête !")
+print("\nBase de donnees prete.")

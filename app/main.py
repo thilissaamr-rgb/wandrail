@@ -7,11 +7,14 @@ from folium.plugins import MarkerCluster
 from streamlit_folium import st_folium
 from sqlalchemy import create_engine, text
 import numpy as np
-import hashlib, secrets, requests
+import hashlib, secrets, requests, os
 from datetime import datetime
+from dotenv import load_dotenv
 
-st.set_page_config(page_title="TrainVoyage PDL", page_icon="🚆", layout="wide",
-                   initial_sidebar_state="expanded")
+load_dotenv()
+
+st.set_page_config(page_title="Wandrail", page_icon="images/logo.png" if os.path.exists("images/logo.png") else None,
+                   layout="wide", initial_sidebar_state="expanded")
 
 for k, v in {
     "dark_mode": False, "page": "accueil", "dest_sel": None,
@@ -233,7 +236,16 @@ body,.main,[data-testid="stAppViewContainer"]{{background:{BG}!important}}
 # ── DB ─────────────────────────────────────────────────────────
 @st.cache_resource
 def get_engine():
-    return create_engine("postgresql://postgres:00000@localhost:5434/tourisme_train")
+    # Streamlit Cloud : variable dans st.secrets["DATABASE_URL"]
+    # Local : variable dans .env ou fallback localhost
+    if "DATABASE_URL" in st.secrets:
+        url = st.secrets["DATABASE_URL"]
+    else:
+        url = os.getenv(
+            "DATABASE_URL",
+            "postgresql://postgres:00000@localhost:5434/tourisme_train"
+        )
+    return create_engine(url)
 
 @st.cache_data(ttl=3600)
 def load_dest():

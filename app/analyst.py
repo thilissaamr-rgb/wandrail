@@ -1,6 +1,6 @@
 """
-Interface Data Analyst — TrainVoyage PDL
-Accès : streamlit run app/analyst.py --server.port 8507
+Interface Data Analyst - Wandrail
+Acces : streamlit run app/analyst.py --server.port 8507
 Mot de passe : analyste2024
 """
 import streamlit as st
@@ -10,9 +10,12 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
 import pickle, os, io
 
-st.set_page_config(page_title="Analytics — TrainVoyage PDL", page_icon="📊",
+load_dotenv()
+
+st.set_page_config(page_title="Analytics - Wandrail", page_icon=None,
                    layout="wide", initial_sidebar_state="expanded")
 
 # ── Auth ────────────────────────────────────────────────────────
@@ -38,7 +41,11 @@ if not st.session_state.analyst_ok:
 # ── DB ──────────────────────────────────────────────────────────
 @st.cache_resource
 def get_engine():
-    return create_engine("postgresql://postgres:00000@localhost:5434/tourisme_train")
+    if "DATABASE_URL" in st.secrets:
+        url = st.secrets["DATABASE_URL"]
+    else:
+        url = os.getenv("DATABASE_URL", "postgresql://postgres:00000@localhost:5434/tourisme_train")
+    return create_engine(url)
 
 @st.cache_data(ttl=3600)
 def load_gares():
