@@ -19,6 +19,7 @@ st.set_page_config(page_title="Wandrail", page_icon="images/logo.png" if os.path
 for k, v in {
     "dark_mode": False, "page": "accueil", "dest_sel": None,
     "profil_sel": None, "planner_step": 1, "user": None, "search_q": "",
+    "show_auth": False,
 }.items():
     if k not in st.session_state:
         st.session_state[k] = v
@@ -114,33 +115,35 @@ body,.main,[data-testid="stAppViewContainer"]{{background:{BG}!important}}
 .tv-brand{{display:flex;align-items:center;gap:10px;font-size:1.08rem;font-weight:800;color:{TEXT};letter-spacing:-.03em}}
 .tv-brand-dot{{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,{BLUE},{ACCENT});animation:heroPulse 3s ease-in-out infinite}}
 
-/* HERO — gradient moderne, pas de photo aléatoire */
-.hero{{position:relative;min-height:540px;display:flex;align-items:center;justify-content:center;overflow:hidden;
-  background:linear-gradient(135deg,#050d2a 0%,#0f2060 35%,#3b0f7a 65%,#6d28d9 100%)}}
-.hero-glow1{{position:absolute;width:700px;height:700px;border-radius:50%;
-  background:radial-gradient(circle,rgba(139,92,246,0.28),transparent 70%);
-  top:-350px;right:-180px;pointer-events:none;animation:heroPulse 6s ease-in-out infinite}}
-.hero-glow2{{position:absolute;width:500px;height:500px;border-radius:50%;
-  background:radial-gradient(circle,rgba(249,115,22,0.15),transparent 70%);
-  bottom:-250px;left:-100px;pointer-events:none;animation:heroPulse 8s ease-in-out infinite reverse}}
-.hero-dots{{position:absolute;inset:0;
-  background-image:radial-gradient(rgba(255,255,255,0.06) 1px,transparent 1px);
-  background-size:28px 28px;pointer-events:none}}
+/* HERO — photo avec effet Ken Burns + fondu */
+.hero{{position:relative;min-height:560px;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:linear-gradient(135deg,#050d2a 0%,#0f2060 35%,#3b0f7a 100%)}}
+.hero-img{{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
+  animation:kenBurns 10s cubic-bezier(0.22,1,0.36,1) forwards}}
+@keyframes kenBurns{{
+  from{{transform:scale(1.1);opacity:0}}
+  10%{{opacity:1}}
+  to{{transform:scale(1);opacity:.85}}
+}}
+.hero-ov{{position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(5,10,40,0.35) 0%,rgba(30,15,80,0.82) 60%,rgba(5,10,40,0.95) 100%)}}
 .hero-cnt{{position:relative;z-index:2;text-align:center;max-width:720px;padding:4rem 2rem;
-  display:flex;flex-direction:column;align-items:center;animation:fadeUp 0.7s cubic-bezier(0.22,1,0.36,1)}}
+  display:flex;flex-direction:column;align-items:center}}
 .hero-badge{{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,0.12);
   backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.22);border-radius:24px;
   color:rgba(255,255,255,.92);font-size:.72rem;font-weight:700;padding:7px 16px;
-  margin-bottom:1.5rem;letter-spacing:.07em;text-transform:uppercase}}
-.hero-h1{{font-size:clamp(2.1rem,5vw,3.6rem);font-weight:900;color:#fff;line-height:1.06;
-  margin-bottom:1rem;letter-spacing:-.04em;text-shadow:0 2px 24px rgba(0,0,0,.3)}}
-.hero-h1 span{{background:linear-gradient(135deg,#a78bfa,{ACCENT});-webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;background-clip:text}}
-.hero-sub{{color:rgba(255,255,255,.68);font-size:.95rem;max-width:520px;margin:0 auto 2rem;line-height:1.75}}
-.hero-pills{{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-bottom:2rem}}
-.hero-pill{{background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);
-  border-radius:20px;color:rgba(255,255,255,.88);padding:5px 13px;font-size:.72rem;font-weight:600;
-  display:inline-flex;align-items:center;gap:5px}}
+  margin-bottom:1.5rem;letter-spacing:.07em;text-transform:uppercase;
+  animation:fadeUp 0.6s 0.2s both}}
+.hero-h1{{font-size:clamp(2.1rem,5vw,3.6rem);font-weight:900;color:#fff;line-height:1.1;
+  margin-bottom:1rem;letter-spacing:-.04em;text-shadow:0 2px 30px rgba(0,0,0,.5);
+  animation:fadeUp 0.7s 0.4s both}}
+.hero-h1 span{{color:#c4b5fd}}
+.hero-sub{{color:rgba(255,255,255,.7);font-size:.95rem;max-width:520px;margin:0 auto 2rem;line-height:1.75;
+  animation:fadeUp 0.7s 0.6s both}}
+.hero-pills{{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-bottom:2rem;
+  animation:fadeUp 0.7s 0.8s both}}
+.hero-pill{{background:rgba(255,255,255,.12);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);
+  border-radius:20px;color:rgba(255,255,255,.9);padding:6px 14px;font-size:.73rem;font-weight:600}}
 
 /* STATS BAR */
 .stats-row{{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid {BORDER}}}
@@ -447,6 +450,8 @@ def uimg(seed, w=800, h=500):
     clean = seed.replace(' ', '').replace(',', '').replace('+', '').replace("'", '')[:20]
     return f"https://picsum.photos/seed/{clean}/{w}/{h}"
 
+HERO_IMG = "https://picsum.photos/id/1048/1920/900"
+
 DEST_META = {
     "saumur":           {"img": uimg("saumurcastle"), "grad": "linear-gradient(135deg,#0f2a5c,#1e4c9e)",
                          "tags":["Château","Vin d'Anjou","Loire"],"icon":"fa-solid fa-chess-rook","color":"#60a5fa"},
@@ -576,27 +581,42 @@ with st.sidebar:
     user = st.session_state.user
 
     if user is None:
-        tab_l, tab_r = st.tabs(["Connexion", "Inscription"])
-        with tab_l:
-            with st.form("login_form"):
-                em = st.text_input("Email", placeholder="votre@email.com")
-                pw = st.text_input("Mot de passe", type="password")
-                if st.form_submit_button("Se connecter", type="primary", use_container_width=True):
-                    u, err = login_user(em, pw)
-                    if u: st.session_state.user = u; st.rerun()
-                    else: st.error(err)
-        with tab_r:
-            with st.form("reg_form"):
-                r_em = st.text_input("Email", placeholder="votre@email.com", key="reg_em")
-                r_ps = st.text_input("Pseudo", placeholder="VoyageurPDL", key="reg_ps")
-                r_vl = st.text_input("Ville de départ", value="Nantes", key="reg_vl")
-                r_pw = st.text_input("Mot de passe", type="password", key="reg_pw")
-                if st.form_submit_button("Créer mon compte", type="primary", use_container_width=True):
-                    ok, err = register_user(r_em, r_ps, r_pw, r_vl)
-                    if ok:
-                        u, _ = login_user(r_em, r_pw)
-                        st.session_state.user = u; st.rerun()
-                    else: st.error(err)
+        if not st.session_state.show_auth:
+            st.markdown(f"""<div style="padding:.6rem 0 .8rem;">
+              <div style="font-size:.82rem;color:{TEXT};font-weight:600;margin-bottom:.3rem;">Bienvenue sur Wandrail</div>
+              <div style="font-size:.73rem;color:{TEXT2};line-height:1.5;margin-bottom:.9rem;">Connectez-vous pour sauvegarder vos voyages, ajouter des favoris et suivre votre impact CO₂.</div>
+            </div>""", unsafe_allow_html=True)
+            if st.button("Se connecter / S'inscrire", use_container_width=True, type="primary"):
+                st.session_state.show_auth = True; st.rerun()
+        else:
+            if st.button("← Retour", key="auth_back", use_container_width=True):
+                st.session_state.show_auth = False; st.rerun()
+            tab_l, tab_r = st.tabs(["Connexion", "Inscription"])
+            with tab_l:
+                with st.form("login_form"):
+                    em = st.text_input("Email", placeholder="votre@email.com")
+                    pw = st.text_input("Mot de passe", type="password")
+                    if st.form_submit_button("Se connecter", type="primary", use_container_width=True):
+                        u, err = login_user(em, pw)
+                        if u:
+                            st.session_state.user = u
+                            st.session_state.show_auth = False
+                            st.rerun()
+                        else: st.error(err)
+            with tab_r:
+                with st.form("reg_form"):
+                    r_em = st.text_input("Email", placeholder="votre@email.com", key="reg_em")
+                    r_ps = st.text_input("Pseudo", placeholder="VoyageurPDL", key="reg_ps")
+                    r_vl = st.text_input("Ville de départ", value="Nantes", key="reg_vl")
+                    r_pw = st.text_input("Mot de passe", type="password", key="reg_pw")
+                    if st.form_submit_button("Créer mon compte", type="primary", use_container_width=True):
+                        ok, err = register_user(r_em, r_ps, r_pw, r_vl)
+                        if ok:
+                            u, _ = login_user(r_em, r_pw)
+                            st.session_state.user = u
+                            st.session_state.show_auth = False
+                            st.rerun()
+                        else: st.error(err)
     else:
         initials = "".join([w[0].upper() for w in user['pseudo'].split()[:2]])
         visits, favs, revs = get_user_stats(user['id'])
@@ -685,17 +705,16 @@ st.markdown(f"""<div class="tvnav">
 # ══════════════════════════════════════════════════════════════════
 if page == "accueil":
     st.markdown(f"""<div class="hero">
-      <div class="hero-glow1"></div>
-      <div class="hero-glow2"></div>
-      <div class="hero-dots"></div>
+      <img class="hero-img" src="{HERO_IMG}" alt="Paysage Pays de la Loire" loading="eager">
+      <div class="hero-ov"></div>
       <div class="hero-cnt">
-        <div class="hero-badge">{fi("fa-solid fa-train","rgba(255,255,255,.9)","0.72rem")} Pays de la Loire &nbsp;·&nbsp; Tourisme en train</div>
+        <div class="hero-badge">Pays de la Loire &nbsp;·&nbsp; Tourisme en train</div>
         <h1 class="hero-h1">Voyagez en train.<br><span>Découvrez les Pays de la Loire.</span></h1>
         <p class="hero-sub">136 gares accessibles · 26&nbsp;099 lieux uniques à explorer · Votre prochain coup de cœur, à portée de train</p>
         <div class="hero-pills">
-          <span class="hero-pill">{fi("fa-solid fa-leaf","#86efac","0.68rem")} −91% CO₂ vs voiture</span>
-          <span class="hero-pill">{fi("fa-solid fa-bolt","#fcd34d","0.68rem")} Billets SNCF Connect</span>
-          <span class="hero-pill">{fi("fa-solid fa-map-pin","#f9a8d4","0.68rem")} 5 styles de voyage</span>
+          <span class="hero-pill">−91% CO₂ vs voiture</span>
+          <span class="hero-pill">Billets SNCF Connect</span>
+          <span class="hero-pill">5 styles de voyage</span>
         </div>
       </div>
     </div>""", unsafe_allow_html=True)
