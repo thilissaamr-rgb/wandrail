@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
 import folium
@@ -53,17 +52,10 @@ GREEN="#22c55e" if dk else "#16a34a"
 ACCENT="#f97316"
 SNCF="#e2001a"
 
-# ── Fonts + FA ─────────────────────────────────────────────────
-st.html("""<script>
-(function(){var d=window.parent.document;
-function lnk(h){if(!d.querySelector('link[href="'+h+'"]')){var l=d.createElement('link');l.rel='stylesheet';l.href=h;d.head.appendChild(l);}}
-lnk('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
-lnk('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
-})();
-</script>""")
-
 # ── CSS ────────────────────────────────────────────────────────
 st.markdown(f"""<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css');
 @keyframes pageIn {{
   from {{opacity:0;transform:translateY(22px)}}
   to {{opacity:1;transform:translateY(0)}}
