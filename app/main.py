@@ -91,6 +91,7 @@ body,.main,[data-testid="stAppViewContainer"]{{background:{BG}!important}}
 .stTextArea textarea{{background:{INPUT}!important;border:1.5px solid {BORDER2}!important;color:{TEXT}!important;border-radius:10px!important}}
 .stSlider>div>div>div>div{{background:{BLUE}!important}}
 .stCheckbox span{{color:{TEXT}!important;font-size:.85rem!important}}
+[data-testid="stVerticalBlock"]>div:has(.dcard)+div [data-testid="stHorizontalBlock"]{{margin-top:-6px!important}}
 .stButton>button{{border-radius:9px!important;font-family:'Plus Jakarta Sans',sans-serif!important;font-weight:600!important;
   font-size:.84rem!important;transition:all .16s!important;border:1.5px solid {BORDER2}!important;
   background:{CARD}!important;color:{TEXT}!important;padding:9px 16px!important}}
@@ -538,29 +539,52 @@ def uimg(seed, w=800, h=500):
     clean = seed.replace(' ', '').replace(',', '').replace('+', '').replace("'", '')[:20]
     return f"https://picsum.photos/seed/{clean}/{w}/{h}"
 
+def pimg(id_, w=800, h=500):
+    return f"https://picsum.photos/id/{id_}/{w}/{h}"
+
 HERO_IMG = "https://picsum.photos/id/1048/1920/900"
 
+_FALLBACK_IDS = [175, 100, 103, 192, 181, 130, 116, 169, 76, 74, 583, 248, 379, 431, 592, 826]
+
+def _fimg(nom):
+    idx = sum(ord(c) for c in str(nom)) % len(_FALLBACK_IDS)
+    return pimg(_FALLBACK_IDS[idx])
+
 DEST_META = {
-    "saumur":           {"img": uimg("saumurcastle"), "grad": "linear-gradient(135deg,#0f2a5c,#1e4c9e)",
-                         "tags":["Château","Vin d'Anjou","Loire"],"icon":"fa-solid fa-chess-rook","color":"#60a5fa"},
-    "le mans":          {"img": uimg("lemansrace"), "grad": "linear-gradient(135deg,#4a0f0f,#8b1a1a)",
-                         "tags":["Circuit 24H","Cathédrale","Sport"],"icon":"fa-solid fa-flag-checkered","color":"#fca5a5"},
-    "angers-st-laud":   {"img": uimg("angerscastle"), "grad": "linear-gradient(135deg,#3d1f06,#7a3d0d)",
-                         "tags":["Château","Tapisserie","Maine"],"icon":"fa-solid fa-landmark","color":"#fcd34d"},
-    "nantes":           {"img": uimg("nantesvilles"), "grad": "linear-gradient(135deg,#052e16,#065f46)",
-                         "tags":["Machines île","Culture","Gastronomie"],"icon":"fa-solid fa-masks-theater","color":"#6ee7b7"},
-    "st-nazaire":       {"img": uimg("saintnazaireport"), "grad": "linear-gradient(135deg,#0a1a35,#1e3a6e)",
-                         "tags":["Pont","Mer","Chantiers navals"],"icon":"fa-solid fa-bridge-water","color":"#a5b4fc"},
-    "la baule-escoublac":{"img": uimg("laBaulebeach"), "grad": "linear-gradient(135deg,#062040,#0d4580)",
-                         "tags":["Grande Plage","Mer","Casino"],"icon":"fa-solid fa-umbrella-beach","color":"#7dd3fc"},
-    "le pouliguen":     {"img": uimg("lePoulguen"), "grad": "linear-gradient(135deg,#063a3a,#0d6e6e)",
-                         "tags":["Port","Voile","Côte sauvage"],"icon":"fa-solid fa-sailboat","color":"#67e8f9"},
-    "laval":            {"img": uimg("lavalFrance"), "grad": "linear-gradient(135deg,#1e0a40,#3b1580)",
-                         "tags":["Château","Art naïf","Mayenne"],"icon":"fa-solid fa-palette","color":"#c4b5fd"},
-    "le croisic":       {"img": uimg("leCroisicport"), "grad": "linear-gradient(135deg,#06253a,#0d4d6b)",
-                         "tags":["Port","Pêche","Sel Guérande"],"icon":"fa-solid fa-fish","color":"#7dd3fc"},
-    "cholet":           {"img": uimg("choletville"), "grad": "linear-gradient(135deg,#2a0615,#5c0e30)",
-                         "tags":["Histoire Vendée","Textiles","Musées"],"icon":"fa-solid fa-building-columns","color":"#f9a8d4"},
+    "saumur":            {"img": pimg(40),  "grad": "linear-gradient(135deg,#0f2a5c,#1e4c9e)",
+                          "tags":["Château","Vin d'Anjou","Loire"],"icon":"fa-solid fa-chess-rook","color":"#60a5fa"},
+    "le mans":           {"img": pimg(175), "grad": "linear-gradient(135deg,#1a1a1a,#3d3d3d)",
+                          "tags":["Circuit 24H","Cathédrale","Sport"],"icon":"fa-solid fa-flag-checkered","color":"#fca5a5"},
+    "angers-st-laud":    {"img": pimg(192), "grad": "linear-gradient(135deg,#3d1f06,#7a3d0d)",
+                          "tags":["Château","Tapisserie","Maine"],"icon":"fa-solid fa-landmark","color":"#fcd34d"},
+    "angers":            {"img": pimg(192), "grad": "linear-gradient(135deg,#3d1f06,#7a3d0d)",
+                          "tags":["Château","Tapisserie","Maine"],"icon":"fa-solid fa-landmark","color":"#fcd34d"},
+    "nantes":            {"img": pimg(130), "grad": "linear-gradient(135deg,#052e16,#065f46)",
+                          "tags":["Machines île","Culture","Gastronomie"],"icon":"fa-solid fa-masks-theater","color":"#6ee7b7"},
+    "st-nazaire":        {"img": pimg(116), "grad": "linear-gradient(135deg,#0a1a35,#1e3a6e)",
+                          "tags":["Pont","Mer","Chantiers navals"],"icon":"fa-solid fa-bridge-water","color":"#a5b4fc"},
+    "saint-nazaire":     {"img": pimg(116), "grad": "linear-gradient(135deg,#0a1a35,#1e3a6e)",
+                          "tags":["Pont","Mer","Chantiers navals"],"icon":"fa-solid fa-bridge-water","color":"#a5b4fc"},
+    "la baule-escoublac":{"img": pimg(169), "grad": "linear-gradient(135deg,#062040,#0d4580)",
+                          "tags":["Grande Plage","Mer","Casino"],"icon":"fa-solid fa-umbrella-beach","color":"#7dd3fc"},
+    "le pouliguen":      {"img": pimg(76),  "grad": "linear-gradient(135deg,#063a3a,#0d6e6e)",
+                          "tags":["Port","Voile","Côte sauvage"],"icon":"fa-solid fa-sailboat","color":"#67e8f9"},
+    "laval":             {"img": pimg(181), "grad": "linear-gradient(135deg,#1e0a40,#3b1580)",
+                          "tags":["Château","Art naïf","Mayenne"],"icon":"fa-solid fa-palette","color":"#c4b5fd"},
+    "le croisic":        {"img": pimg(74),  "grad": "linear-gradient(135deg,#06253a,#0d4d6b)",
+                          "tags":["Port","Pêche","Sel Guérande"],"icon":"fa-solid fa-fish","color":"#7dd3fc"},
+    "cholet":            {"img": pimg(583), "grad": "linear-gradient(135deg,#2a0615,#5c0e30)",
+                          "tags":["Histoire Vendée","Textiles","Musées"],"icon":"fa-solid fa-building-columns","color":"#f9a8d4"},
+    "pornic":            {"img": pimg(76),  "grad": "linear-gradient(135deg,#062040,#0d4580)",
+                          "tags":["Plage","Château","Atlantique"],"icon":"fa-solid fa-umbrella-beach","color":"#7dd3fc"},
+    "les sables-d'olonne":{"img": pimg(169),"grad": "linear-gradient(135deg,#062040,#0d4580)",
+                          "tags":["Plage","Vendée Globe","Mer"],"icon":"fa-solid fa-sailboat","color":"#67e8f9"},
+    "la roche-sur-yon":  {"img": pimg(103), "grad": "linear-gradient(135deg,#1a1a2e,#16213e)",
+                          "tags":["Ville napoléonienne","Vendée","Histoire"],"icon":"fa-solid fa-landmark","color":"#a5b4fc"},
+    "clisson":           {"img": pimg(40),  "grad": "linear-gradient(135deg,#2d1b00,#5c3800)",
+                          "tags":["Château","Muscadet","Toscane"],"icon":"fa-solid fa-chess-rook","color":"#fcd34d"},
+    "fontenay-le-comte": {"img": pimg(826), "grad": "linear-gradient(135deg,#0a2a0a,#155215)",
+                          "tags":["Marais poitevin","Renaissance","Nature"],"icon":"fa-solid fa-leaf","color":"#6ee7b7"},
 }
 
 DEST_PHRASES = {
@@ -627,7 +651,7 @@ def get_meta(nom):
             phrase = next((v for pk, v in DEST_PHRASES.items() if pk in k or k in pk), "")
             return {**val, "phrase": phrase}
     phrase = next((v for pk, v in DEST_PHRASES.items() if pk in k or k in pk), "Une destination à découvrir en train")
-    return {"img": uimg(k), "grad": f"linear-gradient(135deg,{BLDARK},{BLUE})",
+    return {"img": _fimg(k), "grad": f"linear-gradient(135deg,{BLDARK},{BLUE})",
             "tags": [], "icon": "fa-solid fa-train", "color": BLUE, "phrase": phrase}
 
 def fi(cls, col="#fff", sz="1rem", ex=""):
