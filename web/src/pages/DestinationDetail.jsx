@@ -183,7 +183,7 @@ export default function DestinationDetail() {
           <div className="mt-10">
             <h2 className="mb-4 text-2xl font-black tracking-tighter text-ink">Carte des environs</h2>
             <div className="h-[420px] overflow-hidden rounded-2xl border border-line">
-              <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom={false}>
+              <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom={true}>
                 <TileLayer
                   attribution='&copy; OpenStreetMap'
                   url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
