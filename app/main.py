@@ -38,10 +38,10 @@ if dk:
     CHART_BG="#0f1a2e"; CO2GB="#10b981"; CO2BB="#ef4444"
     TAGBG="rgba(59,130,246,0.15)"; TAGC="#7dbff5"; FOOT="#04070f"
 else:
-    BG="#f7f7f7"; CARD="#ffffff"; CARD2="#f0f0f0"; BORDER="rgba(0,0,0,0.08)"
-    BORDER2="rgba(0,0,0,0.16)"; TEXT="#222222"; TEXT2="#717171"
-    SHADOW="0 8px 32px rgba(0,0,0,.14)"; SHADOW2="0 2px 12px rgba(0,0,0,.08)"
-    SBARBG="#ffffff"; INPUT="#f7f7f7"; NAVBG="rgba(255,255,255,0.97)"
+    BG="#ffffff"; CARD="#ffffff"; CARD2="#f5f5f5"; BORDER="rgba(0,0,0,0.09)"
+    BORDER2="rgba(0,0,0,0.18)"; TEXT="#111111"; TEXT2="#6b6b6b"
+    SHADOW="0 8px 32px rgba(0,0,0,.12)"; SHADOW2="0 2px 12px rgba(0,0,0,.07)"
+    SBARBG="#ffffff"; INPUT="#f5f5f5"; NAVBG="rgba(255,255,255,0.98)"
     HERO_OV="linear-gradient(165deg,rgba(10,40,100,0.88),rgba(30,100,180,0.55))"
     BADGE_BG="rgba(0,0,0,0.45)"; ECO_BG="linear-gradient(135deg,#d1fae5,#a7f3d0)"
     ECO_NUM="#065f46"; ECO_LBL="#047857"; TILE="CartoDB positron"
@@ -92,14 +92,14 @@ body,.main,[data-testid="stAppViewContainer"]{{background:{BG}!important}}
 .stSlider>div>div>div>div{{background:{BLUE}!important}}
 .stCheckbox span{{color:{TEXT}!important;font-size:.85rem!important}}
 .stButton>button{{border-radius:9px!important;font-family:'Plus Jakarta Sans',sans-serif!important;font-weight:600!important;
-  font-size:.84rem!important;transition:all .18s!important;border:1.5px solid {BORDER2}!important;
+  font-size:.84rem!important;transition:all .16s!important;border:1.5px solid {BORDER2}!important;
   background:{CARD}!important;color:{TEXT}!important;padding:9px 16px!important}}
-.stButton>button:hover{{border-color:{BLUE}!important;color:{BLUE}!important;background:{TAGBG}!important;transform:translateY(-1px)!important}}
-.stButton>button[kind="primary"]{{background:linear-gradient(135deg,{BLUE},{BLDARK})!important;color:#fff!important;border-color:transparent!important}}
-.stButton>button[kind="primary"]:hover{{opacity:.88!important;transform:translateY(-1px)!important;box-shadow:0 4px 14px {BLUE}50!important}}
+.stButton>button:hover{{border-color:{BLUE}!important;color:{BLUE}!important;background:{TAGBG}!important}}
+.stButton>button[kind="primary"]{{background:{BLUE}!important;color:#fff!important;border-color:{BLUE}!important}}
+.stButton>button[kind="primary"]:hover{{background:{BLDARK}!important;border-color:{BLDARK}!important;box-shadow:0 3px 12px {BLUE}40!important}}
 .stTabs [data-baseweb="tab-list"]{{background:{CARD2}!important;border-radius:12px!important;padding:3px!important;gap:3px!important;border:1px solid {BORDER}!important}}
 .stTabs [data-baseweb="tab"]{{border-radius:9px!important;color:{TEXT2}!important;font-weight:600!important;font-size:.83rem!important;padding:9px 18px!important;background:transparent!important;transition:all .18s!important}}
-.stTabs [aria-selected="true"]{{background:linear-gradient(135deg,{BLUE},{BLDARK})!important;color:#fff!important}}
+.stTabs [aria-selected="true"]{{background:{BLUE}!important;color:#fff!important}}
 .stTabs [data-baseweb="tab-panel"]{{padding:0!important}}
 .stSpinner>div{{border-top-color:{BLUE}!important}}
 
@@ -156,35 +156,34 @@ body,.main,[data-testid="stAppViewContainer"]{{background:{BG}!important}}
 /* STATS BAR */
 .stats-row{{display:grid;grid-template-columns:repeat(4,1fr);background:{CARD};
   border-top:1px solid {BORDER};border-bottom:1px solid {BORDER}}}
-.stat-c{{display:flex;flex-direction:column;align-items:center;padding:2.2rem 1rem;
-  border-right:1px solid {BORDER};gap:6px}}
-.stat-c:last-child{{border-right:none}}
-.stat-n{{font-size:2rem;font-weight:900;letter-spacing:-.05em;color:{BLUE}}}
-.stat-l{{font-size:.72rem;color:{TEXT2};font-weight:500;text-align:center}}
+.stat-c{{display:flex;flex-direction:column;align-items:center;padding:2.8rem 1rem;gap:8px}}
+.stat-n{{font-size:2.4rem;font-weight:900;letter-spacing:-.06em;color:{BLUE}}}
+.stat-l{{font-size:.76rem;color:{TEXT2};font-weight:500;text-align:center;letter-spacing:.01em}}
 
 /* SECTION */
-.sect{{max-width:1440px;margin:0 auto;padding:2.4rem 2.5rem}}
-.sect-hdr{{margin-bottom:1.8rem;display:flex;align-items:flex-end;justify-content:space-between}}
-.sect-title{{font-size:1.5rem;font-weight:800;color:{TEXT};letter-spacing:-.04em;margin-bottom:3px;line-height:1.15}}
-.sect-title-sm{{font-size:1.2rem;font-weight:800;color:{TEXT};letter-spacing:-.03em}}
-.sect-sub{{font-size:.8rem;color:{TEXT2};font-weight:400}}
-.sect-link{{font-size:.82rem;font-weight:700;color:{BLUE};text-decoration:none;white-space:nowrap}}
+.sect{{max-width:1440px;margin:0 auto;padding:3.5rem 2.5rem}}
+.sect-hdr{{margin-bottom:2.2rem;display:flex;align-items:flex-end;justify-content:space-between}}
+.sect-title{{font-size:2rem;font-weight:900;color:{TEXT};letter-spacing:-.05em;margin-bottom:5px;line-height:1.1}}
+.sect-title-sm{{font-size:1.5rem;font-weight:900;color:{TEXT};letter-spacing:-.04em}}
+.sect-sub{{font-size:.84rem;color:{TEXT2};font-weight:400}}
+.sect-link{{font-size:.84rem;font-weight:700;color:{BLUE};text-decoration:none;white-space:nowrap}}
 .sect-divider{{height:1px;background:{BORDER};margin:0 2.5rem}}
 
 /* DESTINATION CARD */
-.dcard{{border-radius:16px;overflow:hidden;background:{CARD};
-  transition:transform .22s ease,box-shadow .22s ease;cursor:pointer}}
-.dcard:hover{{transform:translateY(-3px);box-shadow:0 10px 32px rgba(0,0,0,.11)}}
-.dcard-img{{height:240px;position:relative;overflow:hidden;background:{CARD2}}}
+.dcard{{border-radius:18px;overflow:hidden;background:{CARD};
+  transition:transform .24s ease,box-shadow .24s ease;cursor:pointer;
+  border:1px solid {BORDER}}}
+.dcard:hover{{transform:translateY(-4px);box-shadow:0 14px 40px rgba(0,0,0,.12);border-color:transparent}}
+.dcard-img{{height:260px;position:relative;overflow:hidden;background:{CARD2}}}
 .dcard-img img{{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  transition:transform .5s ease;display:block}}
-.dcard:hover .dcard-img img{{transform:scale(1.04)}}
+  transition:transform .55s ease;display:block}}
+.dcard:hover .dcard-img img{{transform:scale(1.05)}}
 .dcard-ov{{position:absolute;inset:0;
-  background:linear-gradient(to top,rgba(0,0,0,.52) 0%,transparent 55%)}}
-.dcard-city{{position:absolute;bottom:14px;left:16px;right:16px;color:#fff;font-size:1rem;
-  font-weight:700;text-shadow:0 1px 8px rgba(0,0,0,.5);z-index:2}}
-.dcard-info{{padding:.9rem 0 .5rem}}
-.dcard-loc{{font-size:.74rem;color:{TEXT2}}}
+  background:linear-gradient(to top,rgba(0,0,0,.58) 0%,rgba(0,0,0,0) 55%)}}
+.dcard-city{{position:absolute;bottom:16px;left:18px;right:18px;color:#fff;font-size:1.08rem;
+  font-weight:800;text-shadow:0 1px 10px rgba(0,0,0,.6);z-index:2;letter-spacing:-.02em}}
+.dcard-info{{padding:1rem 0 .5rem}}
+.dcard-loc{{font-size:.75rem;color:{TEXT2};font-weight:500}}
 .dtag{{background:{TAGBG};color:{TAGC};border-radius:5px;padding:2px 7px;
   font-size:.61rem;font-weight:600;display:inline;margin-right:3px}}
 
@@ -220,12 +219,12 @@ body,.main,[data-testid="stAppViewContainer"]{{background:{BG}!important}}
 
 /* PROFIL CARD */
 .pcard{{border-radius:16px;cursor:pointer;transition:all .22s cubic-bezier(0.22,1,0.36,1);
-  background:{CARD};border:1.5px solid {BORDER};padding:1.6rem 1.2rem 1.3rem;
-  box-shadow:0 1px 6px rgba(0,0,0,.05)}}
-.pcard:hover{{transform:translateY(-3px);border-color:{BLUE}55;box-shadow:0 8px 24px rgba(0,0,0,.09)}}
-.pcard.sel{{border-color:{BLUE};box-shadow:0 0 0 3px {BLUE}20}}
-.p-nm{{font-weight:800;font-size:.92rem;color:{TEXT};margin-bottom:8px;letter-spacing:-.02em}}
-.p-ds{{font-size:.72rem;color:{TEXT2};line-height:1.55}}
+  background:{CARD};border:1.5px solid {BORDER};padding:1.8rem 1.4rem 1.5rem;
+  box-shadow:0 1px 4px rgba(0,0,0,.04)}}
+.pcard:hover{{transform:translateY(-4px);border-color:{BLUE}60;box-shadow:0 10px 28px rgba(0,0,0,.1)}}
+.pcard.sel{{border-color:{BLUE};border-width:2px;background:rgba(124,58,237,.04)}}
+.p-nm{{font-weight:900;font-size:.96rem;color:{TEXT};margin-bottom:10px;letter-spacing:-.03em;line-height:1.2}}
+.p-ds{{font-size:.74rem;color:{TEXT2};line-height:1.6}}
 
 /* DESTINATION HERO */
 .dhero{{height:340px;position:relative;overflow:hidden;display:flex;align-items:flex-end;background:#0a1a3c}}
@@ -826,10 +825,10 @@ if page == "accueil":
       </div>
     </div>""", unsafe_allow_html=True)
 
-    st.markdown(f"""<div style="background:{CARD};padding:1.4rem 2.5rem 1.2rem;">
-      <div style="max-width:700px;margin:0 auto;">
-        <div style="font-size:.68rem;font-weight:700;color:{TEXT2};text-transform:uppercase;
-          letter-spacing:.07em;margin-bottom:.6rem;">Rechercher une destination</div>
+    st.markdown(f"""<div style="background:{CARD};padding:2rem 2.5rem 1rem;border-bottom:1px solid {BORDER};">
+      <div style="max-width:760px;margin:0 auto;">
+        <div style="font-size:.7rem;font-weight:700;color:{TEXT2};text-transform:uppercase;
+          letter-spacing:.09em;margin-bottom:.8rem;">Rechercher une destination</div>
       </div>
     </div>""", unsafe_allow_html=True)
     deps_all = sorted([d for d in df_dest['departement'].dropna().unique() if d])
@@ -866,9 +865,9 @@ if page == "accueil":
       <div class="sect-hdr">
         <div>
           <div class="sect-title">Destinations incontournables</div>
-          <div class="sect-sub">Selectionnees pour vous · attractivite + accessibilite train</div>
+          <div class="sect-sub">Sélectionnées pour vous · attractivité + accessibilité train</div>
         </div>
-        <a class="sect-link" href="#">Voir tout</a>
+        <span class="sect-link">Voir tout</span>
       </div>
     </div>""", unsafe_allow_html=True)
 
@@ -947,10 +946,10 @@ if page == "accueil":
     st.markdown(trend_hdr + f'<div class="trend-scroll">{trend_cards}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="sect-divider"></div>', unsafe_allow_html=True)
 
-    st.markdown(f"""<div class="sect" style="padding-top:2.4rem;padding-bottom:1.4rem;background:{CARD2};">
+    st.markdown(f"""<div style="background:{CARD2};padding:3.5rem 2.5rem 1.8rem;">
       <div style="max-width:1440px;margin:0 auto;">
-        <div class="sect-title" style="margin-bottom:4px;">Quel type de voyageur etes-vous ?</div>
-        <div class="sect-sub" style="margin-bottom:1.6rem;">Votre profil · des recommandations sur mesure</div>
+        <div class="sect-title" style="margin-bottom:6px;">Quel type de voyageur êtes-vous ?</div>
+        <div class="sect-sub" style="margin-bottom:2rem;">Votre profil · des recommandations sur mesure</div>
       </div>
     </div>""", unsafe_allow_html=True)
     pc = st.columns(5)
