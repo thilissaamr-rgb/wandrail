@@ -6,6 +6,7 @@ import LoginModal from './LoginModal'
 const links = [
   { to: '/', label: 'Accueil', end: true },
   { to: '/destinations', label: 'Destinations' },
+  { to: '/carte', label: 'Carte' },
 ]
 
 export default function Navbar() {

@@ -5,6 +5,7 @@ import ScrollToTop from './components/ScrollToTop'
 import Home from './pages/Home'
 import Destinations from './pages/Destinations'
 import DestinationDetail from './pages/DestinationDetail'
+import Carte from './pages/Carte'
 
 export default function App() {
   const location = useLocation()
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/destinations" element={<Destinations />} />
             <Route path="/destinations/:nom" element={<DestinationDetail />} />
+            <Route path="/carte" element={<Carte />} />
           </Routes>
         </div>
       </main>
