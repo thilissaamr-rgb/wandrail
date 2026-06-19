@@ -1,6 +1,5 @@
 """Connexion a la base PostgreSQL / Supabase.
 
-On reutilise la meme chaine DATABASE_URL que l'application Streamlit.
 La valeur reelle vient du fichier .env (jamais commite) ou des variables
 d'environnement du service cloud (Render, Railway, etc.).
 """
@@ -11,10 +10,9 @@ from sqlalchemy import create_engine
 
 load_dotenv()
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:00000@localhost:5434/tourisme_train",
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    DATABASE_URL = "postgresql://postgres:00000@localhost:5434/tourisme_train"
 
 # On utilise le driver psycopg v3 (wheels disponibles jusqu'a Python 3.14).
 # On reecrit le schema de l'URL pour que SQLAlchemy choisisse psycopg v3,

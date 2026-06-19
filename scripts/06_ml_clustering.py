@@ -45,14 +45,16 @@ def get_engine():
 
 
 def get_model_path():
-    if platform.system() == "Windows":
-        return r"C:\Users\thili\Desktop\tourisme_train\models"
+    local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+    if os.path.exists(local_path):
+        return local_path
     return "/opt/airflow/models"
 
 
 def get_docs_path():
-    if platform.system() == "Windows":
-        return r"C:\Users\thili\Desktop\tourisme_train\docs"
+    local_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "docs"))
+    if os.path.exists(local_path):
+        return local_path
     return "/opt/airflow/docs"
 
 
