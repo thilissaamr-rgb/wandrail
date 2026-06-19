@@ -217,7 +217,7 @@ m.get_root().html.add_child(folium.Element(legende_html))
 folium.LayerControl(position='topright', collapsed=True).add_to(m)
 
 # ── Sauvegarde ───────────────────────────────────────────────
-output = r"C:\Users\thili\Desktop\tourisme_train\carte_interactive.html"
+output = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "carte_interactive.html"))
 m.save(output)
 
 print(f"\n🗺️  Carte sauvegardée !")

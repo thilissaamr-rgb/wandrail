@@ -101,7 +101,7 @@ for score, label in [(2,'Score 2'),(5,'Score 5'),(8,'Score 8')]:
 plt.tight_layout(pad=2)
 
 # ── Sauvegarde ───────────────────────────────────────────────
-output = r"C:\Users\thili\Desktop\tourisme_train\carte_gares_pdl.png"
+output = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "carte_gares_pdl.png"))
 plt.savefig(output, dpi=150, bbox_inches='tight',
             facecolor='#EBF5FB', edgecolor='none')
 plt.close()
