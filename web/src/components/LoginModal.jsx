@@ -1,15 +1,35 @@
 import { useState } from 'react'
 import Logo from './Logo'
+import { useAuth } from '../lib/auth.jsx'
 
-// Panneau de connexion latéral (interface uniquement pour ce POC : l'authentification
-// réelle sera branchée sur l'API plus tard).
+// Panneau de connexion latéral, branché sur l'API (userapp.users).
 export default function LoginModal({ open, onClose }) {
+  const { login, register } = useAuth()
   const [mode, setMode] = useState('login') // login | signup
-  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
-    setMsg('La connexion sera bientôt disponible (interface de démonstration).')
+    setErr('')
+    setBusy(true)
+    const fd = new FormData(e.currentTarget)
+    try {
+      if (mode === 'login') {
+        await login(fd.get('email'), fd.get('password'))
+      } else {
+        await register({
+          email: fd.get('email'),
+          pseudo: fd.get('pseudo'),
+          password: fd.get('password'),
+        })
+      }
+      onClose()
+    } catch (e2) {
+      setErr(e2.message || 'Une erreur est survenue.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -62,6 +82,7 @@ export default function LoginModal({ open, onClose }) {
                 </label>
                 <input
                   type="text"
+                  name="pseudo"
                   placeholder="nom d'utilisateur"
                   required
                   className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-line bg-card2 px-4 text-sm outline-none transition focus:border-violet focus:bg-card"
@@ -74,6 +95,7 @@ export default function LoginModal({ open, onClose }) {
               </label>
               <input
                 type="email"
+                name="email"
                 placeholder="nom@exemple.com"
                 required
                 className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-line bg-card2 px-4 text-sm outline-none transition focus:border-violet focus:bg-card"
@@ -92,22 +114,25 @@ export default function LoginModal({ open, onClose }) {
               </div>
               <input
                 type="password"
+                name="password"
                 placeholder="••••••••"
                 required
+                minLength={6}
                 className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-line bg-card2 px-4 text-sm outline-none transition focus:border-violet focus:bg-card"
               />
             </div>
             <button
               type="submit"
-              className="mt-2 h-11 w-full rounded-xl bg-violet text-sm font-semibold text-white shadow-lg shadow-violet/20 transition hover:bg-violet-dark hover:shadow-violet/30"
+              disabled={busy}
+              className="mt-2 h-11 w-full rounded-xl bg-violet text-sm font-semibold text-white shadow-lg shadow-violet/20 transition hover:bg-violet-dark hover:shadow-violet/30 disabled:opacity-60"
             >
-              {mode === 'login' ? 'Se connecter' : "S'inscrire"}
+              {busy ? '...' : mode === 'login' ? 'Se connecter' : "S'inscrire"}
             </button>
           </form>
 
-          {msg && (
-            <div className="mt-4 rounded-xl bg-violet-light/10 p-3.5 text-center text-xs font-medium text-violet-dark">
-              {msg}
+          {err && (
+            <div className="mt-4 rounded-xl bg-red-50 p-3.5 text-center text-xs font-medium text-red-600">
+              {err}
             </div>
           )}
         </div>
@@ -118,7 +143,7 @@ export default function LoginModal({ open, onClose }) {
           <button
             onClick={() => {
               setMode(mode === 'login' ? 'signup' : 'login')
-              setMsg('')
+              setErr('')
             }}
             className="font-bold text-violet hover:underline"
           >

@@ -10,10 +10,13 @@ Lancement local :
 
 Documentation interactive : http://localhost:8000/docs
 """
+import hashlib
 import os
+import secrets
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlalchemy import text
 
 from db import engine
@@ -34,7 +37,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in origins if o.strip()],
     allow_credentials=True,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -44,6 +47,39 @@ def rows_to_dicts(result):
     """Convertit un resultat SQLAlchemy en liste de dictionnaires."""
     cols = result.keys()
     return [dict(zip(cols, row)) for row in result.fetchall()]
+
+
+# ── Authentification (hachage pbkdf2, identique a l'app Streamlit) ──
+def hash_pw(pw: str) -> str:
+    salt = secrets.token_hex(16)
+    h = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), 100000)
+    return f"{salt}:{h.hex()}"
+
+
+def verify_pw(pw: str, stored: str) -> bool:
+    try:
+        salt, h = stored.split(":")
+        h2 = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), 100000)
+        return secrets.compare_digest(h2.hex(), h)
+    except Exception:
+        return False
+
+
+class RegisterIn(BaseModel):
+    email: str
+    pseudo: str
+    password: str
+    ville_depart: str | None = None
+
+
+class LoginIn(BaseModel):
+    email: str
+    password: str
+
+
+class FavoriteIn(BaseModel):
+    user_id: int
+    destination: str
 
 
 # ── Endpoints ──────────────────────────────────────────────────────
@@ -217,3 +253,90 @@ def recommandations(profil: str):
     )
     with engine.connect() as conn:
         return rows_to_dicts(conn.execute(sql, {"profil": profil}))
+
+
+# ── Comptes utilisateurs ───────────────────────────────────────────
+@app.post("/api/auth/register")
+def register(data: RegisterIn):
+    """Cree un compte. Renvoie l'utilisateur (sans le mot de passe)."""
+    email = data.email.strip().lower()
+    if not email or not data.password or not data.pseudo.strip():
+        raise HTTPException(status_code=400, detail="Champs manquants")
+    with engine.begin() as conn:
+        existing = conn.execute(
+            text("SELECT id FROM userapp.users WHERE email = :e"), {"e": email}
+        ).fetchone()
+        if existing:
+            raise HTTPException(status_code=409, detail="Email deja utilise")
+        row = conn.execute(
+            text(
+                """
+                INSERT INTO userapp.users (email, pseudo, password_hash, ville_depart)
+                VALUES (:e, :p, :h, :v)
+                RETURNING id, pseudo, email
+                """
+            ),
+            {"e": email, "p": data.pseudo.strip(), "h": hash_pw(data.password),
+             "v": data.ville_depart},
+        ).fetchone()
+    return {"id": row[0], "pseudo": row[1], "email": row[2]}
+
+
+@app.post("/api/auth/login")
+def login(data: LoginIn):
+    """Connecte un utilisateur. Renvoie l'utilisateur (sans le mot de passe)."""
+    email = data.email.strip().lower()
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT id, pseudo, email, password_hash FROM userapp.users WHERE email = :e"),
+            {"e": email},
+        ).fetchone()
+    if row is None or not verify_pw(data.password, row[3]):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    return {"id": row[0], "pseudo": row[1], "email": row[2]}
+
+
+# ── Favoris ────────────────────────────────────────────────────────
+@app.get("/api/favorites/{user_id}")
+def list_favorites(user_id: int):
+    """Liste des destinations favorites d'un utilisateur (forme destination)."""
+    sql = text(
+        """
+        SELECT g.nom_gare, g.commune, g.departement, g.latitude, g.longitude,
+               d.score_attractivite, d.profil_touristique, d.nb_poi_5km, d.nb_categories
+        FROM userapp.user_favorites f
+        JOIN silver.gares g ON g.nom_gare = f.destination
+        LEFT JOIN gold.dim_gare d ON d.code_uic = g.code_uic
+        WHERE f.user_id = :u
+        ORDER BY f.added_at DESC
+        """
+    )
+    with engine.connect() as conn:
+        return rows_to_dicts(conn.execute(sql, {"u": user_id}))
+
+
+@app.post("/api/favorites")
+def add_favorite(data: FavoriteIn):
+    """Ajoute un favori (sans doublon)."""
+    with engine.begin() as conn:
+        ex = conn.execute(
+            text("SELECT id FROM userapp.user_favorites WHERE user_id = :u AND destination = :d"),
+            {"u": data.user_id, "d": data.destination},
+        ).fetchone()
+        if not ex:
+            conn.execute(
+                text("INSERT INTO userapp.user_favorites (user_id, destination) VALUES (:u, :d)"),
+                {"u": data.user_id, "d": data.destination},
+            )
+    return {"ok": True, "favorite": True}
+
+
+@app.delete("/api/favorites")
+def remove_favorite(data: FavoriteIn):
+    """Retire un favori."""
+    with engine.begin() as conn:
+        conn.execute(
+            text("DELETE FROM userapp.user_favorites WHERE user_id = :u AND destination = :d"),
+            {"u": data.user_id, "d": data.destination},
+        )
+    return {"ok": True, "favorite": False}

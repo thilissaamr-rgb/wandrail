@@ -3,16 +3,19 @@ import { Link, NavLink } from 'react-router-dom'
 import Logo from './Logo'
 import LoginModal from './LoginModal'
 import { useTheme } from '../lib/theme.jsx'
-
-const links = [
-  { to: '/', label: 'Accueil', end: true },
-  { to: '/destinations', label: 'Destinations' },
-  { to: '/carte', label: 'Carte' },
-]
+import { useAuth } from '../lib/auth.jsx'
 
 export default function Navbar() {
   const [loginOpen, setLoginOpen] = useState(false)
   const { dark, toggle } = useTheme()
+  const { user, logout } = useAuth()
+
+  const links = [
+    { to: '/', label: 'Accueil', end: true },
+    { to: '/destinations', label: 'Destinations' },
+    { to: '/carte', label: 'Carte' },
+    ...(user ? [{ to: '/favoris', label: 'Favoris' }] : []),
+  ]
 
   return (
     <>
@@ -61,16 +64,33 @@ export default function Navbar() {
                 </svg>
               )}
             </button>
-            <button
-              onClick={() => setLoginOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-violet px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet/30 ring-1 ring-violet/20 transition hover:bg-violet-dark hover:shadow-violet/50"
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 21c0-4 4-6 8-6s8 2 8 6" strokeLinecap="round" />
-              </svg>
-              <span className="hidden sm:inline">Se connecter</span>
-            </button>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span className="hidden items-center gap-2 rounded-full border border-line py-1.5 pl-1.5 pr-3 sm:inline-flex">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet text-xs font-bold text-white">
+                    {user.pseudo?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                  <span className="text-sm font-semibold text-ink">{user.pseudo}</span>
+                </span>
+                <button
+                  onClick={logout}
+                  className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted transition hover:border-violet hover:text-violet"
+                >
+                  Deconnexion
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setLoginOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full bg-violet px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet/30 ring-1 ring-violet/20 transition hover:bg-violet-dark hover:shadow-violet/50"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 21c0-4 4-6 8-6s8 2 8 6" strokeLinecap="round" />
+                </svg>
+                <span className="hidden sm:inline">Se connecter</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
