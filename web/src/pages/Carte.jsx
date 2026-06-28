@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { api } from '../lib/api'
+import { useTheme } from '../lib/theme.jsx'
 
 const cap = (s) => String(s || '').replace(/\b\w/g, (c) => c.toUpperCase())
 
@@ -44,6 +45,10 @@ export default function Carte() {
   const [geoMsg, setGeoMsg] = useState('')
   const [locating, setLocating] = useState(false)
   const mapRef = useRef(null)
+  const { dark } = useTheme()
+  const tileUrl = dark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 
   useEffect(() => {
     api.destinations({ limit: 200 }).then(setGares).catch(() => setGares([]))
@@ -116,10 +121,7 @@ export default function Carte() {
             scrollWheelZoom
             ref={mapRef}
           >
-            <TileLayer
-              attribution="&copy; OpenStreetMap"
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            />
+            <TileLayer key={dark ? 'dark' : 'light'} attribution="&copy; OpenStreetMap" url={tileUrl} />
             <FlyTo pos={userPos} />
 
             {gares
@@ -157,7 +159,7 @@ export default function Carte() {
         </div>
 
         {/* Panneau gares proches */}
-        <aside className="h-fit rounded-2xl border border-line bg-white p-5 shadow-card">
+        <aside className="h-fit rounded-2xl border border-line bg-card p-5 shadow-card">
           <h2 className="text-sm font-black uppercase tracking-wide text-ink">Gares proches</h2>
           {nearest.length === 0 ? (
             <p className="mt-3 text-sm leading-relaxed text-muted">

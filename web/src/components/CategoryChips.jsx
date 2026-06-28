@@ -11,7 +11,7 @@ export default function CategoryChips({ items, active, onSelect }) {
             className={`flex-shrink-0 whitespace-nowrap rounded-3xl border px-6 py-2 text-sm font-semibold transition-colors ${
               isActive
                 ? 'border-violet bg-violet text-white'
-                : 'border-black/20 bg-white text-muted hover:border-violet hover:text-violet'
+                : 'border-line bg-card text-muted hover:border-violet hover:text-violet'
             }`}
           >
             {item.label}

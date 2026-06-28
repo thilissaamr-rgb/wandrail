@@ -2,12 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tokens de theme : clair par defaut, sombre via .dark sur <html> */
+:root {
+  --bg: 255 255 255;
+  --card: 255 255 255;
+  --card2: 245 245 245;
+  --text: 17 17 17;
+  --muted: 107 107 107;
+  --line: rgba(0, 0, 0, 0.09);
+}
+.dark {
+  --bg: 11 17 32;
+  --card: 19 28 47;
+  --card2: 27 39 64;
+  --text: 232 237 247;
+  --muted: 148 163 189;
+  --line: rgba(255, 255, 255, 0.1);
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
   }
   body {
-    @apply bg-white text-ink font-sans;
+    @apply bg-bg text-ink font-sans;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   h1, h2, h3 {
     @apply font-display;

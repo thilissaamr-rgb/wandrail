@@ -13,6 +13,7 @@ import L from 'leaflet'
 import { api } from '../lib/api'
 import { destImage, poiImage } from '../lib/images'
 import { usePlaceImage } from '../lib/usePlaceImage'
+import { useTheme } from '../lib/theme.jsx'
 
 // Gare de reference (hub regional) pour la comparaison train / voiture.
 const HUB = { nom: 'Nantes', lat: 47.218371, lon: -1.541362 }
@@ -104,6 +105,10 @@ export default function DestinationDetail() {
   // Vraie photo de la ville (Wikipedia) avec repli picsum.
   const communeName = data?.destination?.commune || data?.destination?.nom_gare || ''
   const heroImg = usePlaceImage(communeName, destImage(communeName, 1600, 700))
+  const { dark } = useTheme()
+  const tileUrl = dark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 
   const cats = useMemo(
     () => ['Tout', ...new Set(pois.map((p) => p.categorie).filter(Boolean))],
@@ -243,11 +248,11 @@ export default function DestinationDetail() {
       <button
         key={key}
         onClick={() => toggle(p.nom)}
-        className={`group overflow-hidden rounded-xl border bg-white text-left shadow-card transition-all ${
+        className={`group overflow-hidden rounded-xl border bg-card text-left shadow-card transition-all ${
           isSel ? 'border-violet ring-2 ring-violet/20' : 'border-line hover:border-violet/40'
         }`}
       >
-        <div className="relative h-32 overflow-hidden bg-neutral-100">
+        <div className="relative h-32 overflow-hidden bg-card2">
           <img
             src={poiImage(p.categorie, p.nom)}
             alt={cap(p.nom)}
@@ -259,7 +264,7 @@ export default function DestinationDetail() {
           </span>
           <span
             className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold shadow ${
-              isSel ? 'bg-violet text-white' : 'bg-white/90 text-ink'
+              isSel ? 'bg-violet text-white' : 'bg-white/90 text-neutral-900'
             }`}
           >
             {isSel ? '✓' : '+'}
@@ -313,7 +318,7 @@ export default function DestinationDetail() {
             { v: d.nb_categories ?? '-', l: 'Categories' },
             { v: pois.length, l: 'Lieux affiches' },
           ].map((s) => (
-            <div key={s.l} className="rounded-2xl border border-line bg-white p-5 text-center shadow-card">
+            <div key={s.l} className="rounded-2xl border border-line bg-card p-5 text-center shadow-card">
               <div className="text-2xl font-extrabold tracking-tighter text-violet">{s.v}</div>
               <div className="mt-1 text-xs font-medium text-muted">{s.l}</div>
             </div>
@@ -341,7 +346,7 @@ export default function DestinationDetail() {
               Aller-retour depuis {HUB.nom} ({Math.round(distAR)} km) - estimations indicatives.
             </p>
             <div className="overflow-hidden rounded-2xl border border-line shadow-card">
-              <div className="grid grid-cols-3 border-b border-line bg-neutral-50 text-xs font-bold uppercase tracking-wide text-muted">
+              <div className="grid grid-cols-3 border-b border-line bg-card2 text-xs font-bold uppercase tracking-wide text-muted">
                 <div className="p-3" />
                 <div className="p-3 text-center text-violet">Train</div>
                 <div className="p-3 text-center">Voiture</div>
@@ -381,10 +386,7 @@ export default function DestinationDetail() {
             <h2 className="mb-4 text-2xl font-black tracking-tighter text-ink">Carte des environs</h2>
             <div className="h-[420px] overflow-hidden rounded-2xl border border-line">
               <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom={true}>
-                <TileLayer
-                  attribution='&copy; OpenStreetMap'
-                  url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                />
+                <TileLayer key={dark ? 'dark' : 'light'} attribution='&copy; OpenStreetMap' url={tileUrl} />
                 <Circle center={center} radius={2000} pathOptions={{ color: '#7c3aed', fillOpacity: 0.05 }} />
                 <Marker position={center} icon={icon}>
                   <Popup>Gare de {ville}</Popup>
@@ -429,7 +431,7 @@ export default function DestinationDetail() {
                   className={`flex-shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
                     cat === c
                       ? 'border-violet bg-violet text-white'
-                      : 'border-black/15 bg-white text-muted hover:border-violet hover:text-violet'
+                      : 'border-line bg-card text-muted hover:border-violet hover:text-violet'
                   }`}
                 >
                   {c}
@@ -457,7 +459,7 @@ export default function DestinationDetail() {
 
           {/* Colonne itineraire (sticky) */}
           <aside className="h-fit lg:sticky lg:top-20">
-            <div className="rounded-2xl border border-line bg-white p-5 shadow-card">
+            <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
               <h3 className="text-lg font-black tracking-tight text-ink">Mon itineraire</h3>
 
               {itinerary.length === 0 ? (
@@ -473,7 +475,7 @@ export default function DestinationDetail() {
                     {displayKm > 0 ? ` - ${displayKm.toFixed(1)} km - ~${displayMin} min a pied` : ''}
                   </div>
                   <ol className="space-y-0">
-                    <li className="flex items-center gap-3 rounded-lg bg-neutral-50 px-3 py-2">
+                    <li className="flex items-center gap-3 rounded-lg bg-card2 px-3 py-2">
                       <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-ink text-xs font-bold text-white">
                         G
                       </span>

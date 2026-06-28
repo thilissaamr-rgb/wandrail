@@ -65,7 +65,7 @@ export default function Destinations() {
   }, [q, departement, profil, voyageur, sort])
 
   const selCls =
-    'h-11 w-full rounded-xl border-[1.5px] border-black/15 bg-white px-3 text-sm outline-none focus:border-violet'
+    'h-11 w-full rounded-xl border-[1.5px] border-line bg-card px-3 text-sm text-ink outline-none focus:border-violet'
 
   return (
     <div className="mx-auto max-w-page px-6 py-10">
@@ -74,7 +74,7 @@ export default function Destinations() {
 
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr]">
         {/* Filtres - colonne laterale */}
-        <aside className="h-fit space-y-5 rounded-2xl border border-line bg-white p-5 shadow-card lg:sticky lg:top-20">
+        <aside className="h-fit space-y-5 rounded-2xl border border-line bg-card p-5 shadow-card lg:sticky lg:top-20">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-black uppercase tracking-wide text-ink">Filtres</h2>
             {hasFilters && (
@@ -93,7 +93,7 @@ export default function Destinations() {
               value={q}
               onChange={(e) => setParam('q', e.target.value)}
               placeholder="Une ville..."
-              className="h-11 w-full rounded-xl border-[1.5px] border-black/15 bg-neutral-50 px-4 text-sm outline-none focus:border-violet"
+              className="h-11 w-full rounded-xl border-[1.5px] border-line bg-card2 px-4 text-sm text-ink outline-none focus:border-violet"
             />
           </div>
 

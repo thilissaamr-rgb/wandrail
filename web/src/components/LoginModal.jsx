@@ -28,8 +28,7 @@ export default function LoginModal({ open, onClose }) {
 
       {/* Panneau latéral (Drawer) */}
       <div
-        style={{ backgroundColor: '#ffffff' }}
-        className={`fixed inset-y-0 right-0 z-[101] flex h-full w-full max-w-sm flex-col justify-between bg-white p-7 shadow-2xl transition-transform duration-300 ease-in-out transform ${
+        className={`fixed inset-y-0 right-0 z-[101] flex h-full w-full max-w-sm flex-col justify-between bg-card p-7 shadow-2xl transition-transform duration-300 ease-in-out transform ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -39,7 +38,7 @@ export default function LoginModal({ open, onClose }) {
             <Logo textClass="text-xl" />
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-2xl leading-none text-muted transition hover:bg-neutral-100 hover:text-ink"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-2xl leading-none text-muted transition hover:bg-card2 hover:text-ink"
               aria-label="Fermer"
             >
               {'×'}
@@ -65,7 +64,7 @@ export default function LoginModal({ open, onClose }) {
                   type="text"
                   placeholder="nom d'utilisateur"
                   required
-                  className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-black/15 bg-neutral-50 px-4 text-sm outline-none transition focus:border-violet focus:bg-white"
+                  className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-line bg-card2 px-4 text-sm outline-none transition focus:border-violet focus:bg-card"
                 />
               </div>
             )}
@@ -77,7 +76,7 @@ export default function LoginModal({ open, onClose }) {
                 type="email"
                 placeholder="nom@exemple.com"
                 required
-                className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-black/15 bg-neutral-50 px-4 text-sm outline-none transition focus:border-violet focus:bg-white"
+                className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-line bg-card2 px-4 text-sm outline-none transition focus:border-violet focus:bg-card"
               />
             </div>
             <div>
@@ -95,7 +94,7 @@ export default function LoginModal({ open, onClose }) {
                 type="password"
                 placeholder="••••••••"
                 required
-                className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-black/15 bg-neutral-50 px-4 text-sm outline-none transition focus:border-violet focus:bg-white"
+                className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-line bg-card2 px-4 text-sm outline-none transition focus:border-violet focus:bg-card"
               />
             </div>
             <button

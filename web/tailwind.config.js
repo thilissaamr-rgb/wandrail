@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
@@ -10,9 +11,14 @@ export default {
           dark: '#4c1d95',
           light: '#c4b5fd',
         },
-        ink: '#111111',
-        muted: '#6b6b6b',
-        line: 'rgba(0,0,0,0.09)',
+        // Tokens semantiques pilotes par des variables CSS (voir index.css).
+        // Basculent automatiquement en mode sombre.
+        bg: 'rgb(var(--bg) / <alpha-value>)',
+        card: 'rgb(var(--card) / <alpha-value>)',
+        card2: 'rgb(var(--card2) / <alpha-value>)',
+        ink: 'rgb(var(--text) / <alpha-value>)',
+        muted: 'rgb(var(--muted) / <alpha-value>)',
+        line: 'var(--line)',
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],

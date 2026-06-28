@@ -68,7 +68,7 @@ export default function Home() {
             </p>
 
             {/* Barre de recherche + filtres */}
-            <div className="mx-auto flex max-w-2xl flex-col gap-2 rounded-2xl border border-white/10 bg-white p-2 shadow-[0_8px_32px_rgba(0,0,0,0.25)] sm:flex-row sm:items-center">
+            <div className="mx-auto flex max-w-2xl flex-col gap-2 rounded-2xl border border-white/10 bg-card p-2 shadow-[0_8px_32px_rgba(0,0,0,0.25)] sm:flex-row sm:items-center">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -76,7 +76,7 @@ export default function Home() {
                 placeholder="Une ville : Nantes, Le Mans, Saumur..."
                 className="h-12 flex-1 rounded-xl bg-transparent px-4 text-sm text-ink outline-none placeholder:text-muted"
               />
-              <div className="hidden h-7 w-px bg-black/10 sm:block" />
+              <div className="hidden h-7 w-px bg-line sm:block" />
               <select
                 value={dep}
                 onChange={(e) => setDep(e.target.value)}
@@ -109,7 +109,7 @@ export default function Home() {
       </section>
 
       {/* Profils */}
-      <section className="bg-neutral-100 px-6 py-14">
+      <section className="bg-card2 px-6 py-14">
         <div className="mx-auto max-w-page">
           <h2 className="text-3xl font-black tracking-tighter text-ink">
             Quel type de voyageur etes-vous ?

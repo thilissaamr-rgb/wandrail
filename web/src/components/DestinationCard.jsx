@@ -12,9 +12,9 @@ export default function DestinationCard({ dest }) {
   return (
     <Link
       to={`/destinations/${encodeURIComponent(dest.nom_gare)}`}
-      className="group block overflow-hidden rounded-2xl border border-line bg-white shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:border-transparent hover:shadow-cardHover"
+      className="group block overflow-hidden rounded-2xl border border-line bg-card shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:border-transparent hover:shadow-cardHover"
     >
-      <div className="relative h-60 overflow-hidden bg-neutral-100">
+      <div className="relative h-60 overflow-hidden bg-card2">
         <img
           src={img}
           alt={ville}
@@ -24,7 +24,7 @@ export default function DestinationCard({ dest }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
 
         {score != null && (
-          <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-ink shadow-sm backdrop-blur">
+          <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-neutral-900 shadow-sm backdrop-blur">
             {score.toFixed(1)}
           </span>
         )}

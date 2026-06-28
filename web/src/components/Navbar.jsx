@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import Logo from './Logo'
 import LoginModal from './LoginModal'
+import { useTheme } from '../lib/theme.jsx'
 
 const links = [
   { to: '/', label: 'Accueil', end: true },
@@ -11,10 +12,11 @@ const links = [
 
 export default function Navbar() {
   const [loginOpen, setLoginOpen] = useState(false)
+  const { dark, toggle } = useTheme()
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-line bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-line bg-card/95 backdrop-blur">
         <div className="mx-auto grid h-16 max-w-page grid-cols-[1fr_auto_1fr] items-center px-6">
           {/* Gauche : logo */}
           <Link to="/" className="justify-self-start">
@@ -41,8 +43,24 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Droite : connexion */}
-          <div className="justify-self-end">
+          {/* Droite : theme + connexion */}
+          <div className="flex items-center gap-2 justify-self-end">
+            <button
+              onClick={toggle}
+              aria-label={dark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-line text-muted transition hover:border-violet hover:text-violet"
+            >
+              {dark ? (
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                  <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+                </svg>
+              )}
+            </button>
             <button
               onClick={() => setLoginOpen(true)}
               className="inline-flex items-center gap-2 rounded-full bg-violet px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet/30 ring-1 ring-violet/20 transition hover:bg-violet-dark hover:shadow-violet/50"
@@ -51,7 +69,7 @@ export default function Navbar() {
                 <circle cx="12" cy="8" r="4" />
                 <path d="M4 21c0-4 4-6 8-6s8 2 8 6" strokeLinecap="round" />
               </svg>
-              Se connecter
+              <span className="hidden sm:inline">Se connecter</span>
             </button>
           </div>
         </div>
