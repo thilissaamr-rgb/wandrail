@@ -271,7 +271,19 @@ export default function DestinationDetail() {
           </span>
         </div>
         <div className="p-3">
-          <div className="truncate font-bold text-ink">{cap(p.nom)}</div>
+          <div className="flex items-start justify-between gap-2">
+            <div className="truncate font-bold text-ink">{cap(p.nom)}</div>
+            {p.note_moyenne > 0 ? (
+              <span className="flex flex-shrink-0 items-center gap-0.5 text-xs font-bold text-amber-500">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
+                  <path d="M12 2l2.9 6.3 6.9.7-5.1 4.7 1.4 6.8L12 17.8 5.9 20.5l1.4-6.8L2.2 9l6.9-.7z" />
+                </svg>
+                {Number(p.note_moyenne).toFixed(1)}
+              </span>
+            ) : (
+              <span className="flex-shrink-0 text-[0.65rem] italic text-muted">non note</span>
+            )}
+          </div>
           <div className="mt-0.5 text-xs text-muted">
             {p.distance_gare_km != null ? `${Number(p.distance_gare_km).toFixed(1)} km` : ''}
             {p.temps_marche_min != null ? ` - ${Math.round(p.temps_marche_min)} min a pied` : ''}
