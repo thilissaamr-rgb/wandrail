@@ -14,6 +14,7 @@ import { api } from '../lib/api'
 import { destImage, poiImage } from '../lib/images'
 import { usePlaceImage } from '../lib/usePlaceImage'
 import { useTheme } from '../lib/theme.jsx'
+import { generateTicket } from '../lib/ticket'
 
 // Gare de reference (hub regional) pour la comparaison train / voiture.
 const HUB = { nom: 'Nantes', lat: 47.218371, lon: -1.541362 }
@@ -69,6 +70,7 @@ export default function DestinationDetail() {
   const [error, setError] = useState(false)
   const [cat, setCat] = useState('Tout')
   const [selected, setSelected] = useState([]) // noms de lieux selectionnes
+  const [ticketBusy, setTicketBusy] = useState(false)
 
   // Chargement de la destination + restauration de l'itineraire sauvegarde.
   useEffect(() => {
@@ -337,18 +339,44 @@ export default function DestinationDetail() {
           ))}
         </div>
 
-        <a
-          href={sncfUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl bg-[#e2001a] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#e2001a]/25 transition hover:bg-[#c4001a]"
-        >
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="4" y="3" width="16" height="13" rx="2" />
-            <path d="M4 11h16M8 20l-2 2M16 20l2 2M9 16v2M15 16v2" strokeLinecap="round" />
-          </svg>
-          Acheter mon billet de train (SNCF Connect)
-        </a>
+        <div className="flex flex-wrap gap-3">
+          <a
+            href={sncfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#e2001a] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#e2001a]/25 transition hover:bg-[#c4001a]"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="4" y="3" width="16" height="13" rx="2" />
+              <path d="M4 11h16M8 20l-2 2M16 20l2 2M9 16v2M15 16v2" strokeLinecap="round" />
+            </svg>
+            Acheter sur SNCF Connect
+          </a>
+          <button
+            onClick={async () => {
+              setTicketBusy(true)
+              try {
+                await generateTicket({
+                  origin: HUB.nom,
+                  destination: ville,
+                  departement: d.departement,
+                  priceEur: trainCost,
+                  co2SavedKg: co2Saved,
+                  distanceKm: distKm,
+                })
+              } finally {
+                setTicketBusy(false)
+              }
+            }}
+            disabled={ticketBusy}
+            className="inline-flex items-center gap-2 rounded-xl border-[1.5px] border-violet px-6 py-3 text-sm font-bold text-violet transition hover:bg-violet hover:text-white disabled:opacity-60"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {ticketBusy ? 'Generation...' : 'Telecharger le billet (PDF)'}
+          </button>
+        </div>
 
         {/* Comparaison Train vs Voiture */}
         {showCompare && (
