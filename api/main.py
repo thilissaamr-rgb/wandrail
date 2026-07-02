@@ -94,6 +94,101 @@ def health():
         return {"status": "ok", "db": "error", "detail": str(exc)}
 
 
+@app.get("/api/data-quality")
+def data_quality():
+    """KPI data pour le tableau de bord.
+
+    Regroupe les indicateurs cle du pipeline Medaillon (bronze -> silver -> gold)
+    et un score global de qualite des donnees.
+    """
+    with engine.connect() as conn:
+        nb_gares = conn.execute(text("SELECT COUNT(*) FROM silver.gares")).scalar()
+        nb_gares_geo = conn.execute(
+            text("SELECT COUNT(*) FROM silver.gares WHERE latitude IS NOT NULL")
+        ).scalar()
+        nb_poi = conn.execute(text("SELECT COUNT(*) FROM silver.poi")).scalar()
+        nb_poi_geo = conn.execute(
+            text("SELECT COUNT(*) FROM silver.poi WHERE latitude IS NOT NULL")
+        ).scalar()
+        nb_dest_analysees = conn.execute(
+            text("SELECT COUNT(*) FROM gold.dim_gare WHERE score_attractivite IS NOT NULL")
+        ).scalar()
+        nb_deps = conn.execute(
+            text("SELECT COUNT(DISTINCT departement) FROM silver.gares WHERE departement IS NOT NULL")
+        ).scalar()
+        nb_profils = conn.execute(text("SELECT COUNT(*) FROM gold.dim_profil")).scalar()
+
+        top_categories = rows_to_dicts(
+            conn.execute(
+                text(
+                    """
+                    SELECT categorie AS label, COUNT(*) AS nb
+                    FROM silver.poi
+                    WHERE categorie IS NOT NULL
+                    GROUP BY categorie
+                    ORDER BY nb DESC
+                    """
+                )
+            )
+        )
+        top_departements = rows_to_dicts(
+            conn.execute(
+                text(
+                    """
+                    SELECT g.departement AS label, COUNT(*) AS nb_gares
+                    FROM silver.gares g
+                    WHERE g.departement IS NOT NULL
+                    GROUP BY g.departement
+                    ORDER BY nb_gares DESC
+                    """
+                )
+            )
+        )
+        top_destinations = rows_to_dicts(
+            conn.execute(
+                text(
+                    """
+                    SELECT g.commune AS commune, g.nom_gare AS nom_gare,
+                           g.departement AS departement,
+                           d.score_attractivite AS score, d.nb_poi_5km AS nb_poi
+                    FROM silver.gares g
+                    JOIN gold.dim_gare d ON d.code_uic = g.code_uic
+                    WHERE d.score_attractivite IS NOT NULL
+                    ORDER BY d.score_attractivite DESC
+                    LIMIT 10
+                    """
+                )
+            )
+        )
+
+    # Score qualite : moyenne ponderee de la completude (geo, analyses)
+    geo_gares = nb_gares_geo / nb_gares if nb_gares else 0
+    geo_poi = nb_poi_geo / nb_poi if nb_poi else 0
+    analyses = nb_dest_analysees / nb_gares if nb_gares else 0
+    quality_score = round(100 * (0.35 * geo_gares + 0.4 * geo_poi + 0.25 * analyses), 1)
+
+    return {
+        "kpi": {
+            "nb_gares": nb_gares,
+            "nb_gares_geo": nb_gares_geo,
+            "nb_poi": nb_poi,
+            "nb_poi_geo": nb_poi_geo,
+            "nb_dest_analysees": nb_dest_analysees,
+            "nb_departements": nb_deps,
+            "nb_profils": nb_profils,
+        },
+        "completude": {
+            "gares_geo_pct": round(100 * geo_gares, 1),
+            "poi_geo_pct": round(100 * geo_poi, 1),
+            "analyses_pct": round(100 * analyses, 1),
+        },
+        "quality_score": quality_score,
+        "top_categories": top_categories,
+        "top_departements": top_departements,
+        "top_destinations": top_destinations,
+    }
+
+
 @app.get("/api/stats")
 def stats():
     """Chiffres cles affiches sur la page d'accueil."""

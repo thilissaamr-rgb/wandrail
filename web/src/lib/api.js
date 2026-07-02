@@ -28,6 +28,7 @@ async function send(method, path, body) {
 
 export const api = {
   stats: () => get('/api/stats'),
+  dataQuality: () => get('/api/data-quality'),
   departements: () => get('/api/departements'),
   profils: () => get('/api/profils'),
   destinations: (params = {}) => {

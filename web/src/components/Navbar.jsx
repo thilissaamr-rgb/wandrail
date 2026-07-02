@@ -15,6 +15,7 @@ export default function Navbar() {
     { to: '/', label: 'Accueil', end: true },
     { to: '/destinations', label: 'Destinations' },
     { to: '/carte', label: 'Carte' },
+    { to: '/data-dashboard', label: 'Data' },
     ...(user ? [{ to: '/favoris', label: 'Favoris' }] : []),
   ]
 

@@ -7,6 +7,8 @@ import Destinations from './pages/Destinations'
 import DestinationDetail from './pages/DestinationDetail'
 import Carte from './pages/Carte'
 import Favoris from './pages/Favoris'
+import DataDashboard from './pages/DataDashboard'
+import Methodologie from './pages/Methodologie'
 
 export default function App() {
   const location = useLocation()
@@ -23,6 +25,8 @@ export default function App() {
             <Route path="/destinations/:nom" element={<DestinationDetail />} />
             <Route path="/carte" element={<Carte />} />
             <Route path="/favoris" element={<Favoris />} />
+            <Route path="/data-dashboard" element={<DataDashboard />} />
+            <Route path="/methodologie" element={<Methodologie />} />
           </Routes>
         </div>
       </main>
