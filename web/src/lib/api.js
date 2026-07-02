@@ -4,8 +4,19 @@
 
 const BASE = import.meta.env.VITE_API_BASE || ''
 
-async function get(path) {
-  const res = await fetch(`${BASE}${path}`)
+function authHeaders() {
+  try {
+    const token = JSON.parse(localStorage.getItem('wandrail:user'))?.access_token
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  } catch {
+    return {}
+  }
+}
+
+async function get(path, authenticated = false) {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: authenticated ? authHeaders() : {},
+  })
   if (!res.ok) {
     throw new Error(`Erreur API ${res.status} sur ${path}`)
   }
@@ -16,7 +27,7 @@ async function get(path) {
 async function send(method, path, body) {
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
   })
   const data = await res.json().catch(() => ({}))
@@ -46,9 +57,7 @@ export const api = {
   login: (payload) => send('POST', '/api/auth/login', payload),
 
   // Favoris
-  favorites: (userId) => get(`/api/favorites/${userId}`),
-  addFavorite: (userId, destination) =>
-    send('POST', '/api/favorites', { user_id: userId, destination }),
-  removeFavorite: (userId, destination) =>
-    send('DELETE', '/api/favorites', { user_id: userId, destination }),
+  favorites: () => get('/api/favorites', true),
+  addFavorite: (_userId, destination) => send('POST', '/api/favorites', { destination }),
+  removeFavorite: (_userId, destination) => send('DELETE', '/api/favorites', { destination }),
 }

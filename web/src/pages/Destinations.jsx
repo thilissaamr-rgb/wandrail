@@ -54,7 +54,10 @@ export default function Destinations() {
         }
         if (departement) out = out.filter((d) => d.departement === departement)
         const cmp = {
-          score: (a, b) => (b.score_attractivite || 0) - (a.score_attractivite || 0),
+          score: (a, b) =>
+            a.rang && b.rang
+              ? a.rang - b.rang
+              : (b.score_attractivite || 0) - (a.score_attractivite || 0),
           nom: (a, b) => (a.commune || '').localeCompare(b.commune || ''),
           poi: (a, b) => (b.nb_poi_5km || 0) - (a.nb_poi_5km || 0),
         }[sort]
@@ -70,7 +73,7 @@ export default function Destinations() {
   return (
     <div className="mx-auto max-w-page px-6 py-10">
       <h1 className="text-3xl font-black tracking-tighter text-ink">Toutes les destinations</h1>
-      <p className="mt-1 text-sm text-muted">Filtrez par departement, profil ou recherchez une ville.</p>
+      <p className="mt-1 text-sm text-muted">Filtrez par département, profil ou recherchez une ville.</p>
 
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr]">
         {/* Filtres - colonne laterale */}
@@ -82,7 +85,7 @@ export default function Destinations() {
                 onClick={() => setSearchParams({})}
                 className="text-xs font-semibold text-violet hover:underline"
               >
-                Reinitialiser
+                Réinitialiser
               </button>
             )}
           </div>
@@ -110,9 +113,9 @@ export default function Destinations() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold text-muted">Departement</label>
+            <label className="mb-1.5 block text-xs font-semibold text-muted">Département</label>
             <select value={departement} onChange={(e) => setParam('departement', e.target.value)} className={selCls}>
-              <option value="">Tous les departements</option>
+              <option value="">Tous les départements</option>
               {deps.map((d) => (
                 <option key={d} value={d}>
                   {d}
@@ -136,9 +139,9 @@ export default function Destinations() {
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-muted">Trier par</label>
             <select value={sort} onChange={(e) => setParam('sort', e.target.value)} className={selCls}>
-              <option value="score">Score d'attractivite</option>
+              <option value="score">Score d'attractivité</option>
               <option value="nom">Nom (A-Z)</option>
-              <option value="poi">Nombre d'activites</option>
+              <option value="poi">Nombre d'activités</option>
             </select>
           </div>
         </aside>
@@ -150,7 +153,7 @@ export default function Destinations() {
               ? 'Recherche en cours...'
               : `${dests.length} destination${dests.length > 1 ? 's' : ''}`}
             {voyageur && !loading && (
-              <span className="ml-2 font-normal text-muted">- recommandees pour un voyage {voyageur}</span>
+              <span className="ml-2 font-normal text-muted">- recommandées pour un voyage {voyageur}</span>
             )}
           </div>
 
@@ -166,7 +169,7 @@ export default function Destinations() {
 
           {!loading && dests.length === 0 && (
             <div className="py-20 text-center text-muted">
-              Aucune destination ne correspond a ces criteres.
+              Aucune destination ne correspond à ces critères.
             </div>
           )}
         </div>

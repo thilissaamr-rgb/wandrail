@@ -131,7 +131,7 @@ pip install -r requirements.txt
 docker-compose up -d
 
 # 5. Initialiser la base de données
-python scripts/00_init_db.py
+python scripts/00_init_db.py --force
 
 # 6. Lancer le pipeline ETL complet & ML
 python scripts/01_gares.py

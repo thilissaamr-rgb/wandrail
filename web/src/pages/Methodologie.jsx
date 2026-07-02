@@ -9,14 +9,14 @@ function Section({ num, title, children }) {
         </span>
         <h2 className="text-xl font-black tracking-tight text-ink">{title}</h2>
       </div>
-      <div className="mt-3 space-y-3 pl-11 text-sm leading-relaxed text-muted">{children}</div>
+      <div className="mt-3 space-y-3 pl-0 text-sm leading-relaxed text-muted sm:pl-11">{children}</div>
     </section>
   )
 }
 
 function Code({ children }) {
   return (
-    <pre className="overflow-x-auto rounded-lg border border-line bg-card2 p-3 text-xs font-mono text-ink">
+    <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg border border-line bg-card2 p-3 font-mono text-xs text-ink">
       {children}
     </pre>
   )
@@ -26,192 +26,151 @@ export default function Methodologie() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <div className="mb-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-violet">
-        Big Data &amp; IA
+        Big Data &amp; IA - démarche reproductible
       </div>
-      <h1 className="text-3xl font-black tracking-tighter text-ink">Methodologie du projet</h1>
+      <h1 className="text-3xl font-black tracking-tighter text-ink">Méthodologie du projet</h1>
       <p className="mt-2 text-sm text-muted">
-        De la donnee ouverte a la recommandation personnalisee : pipeline, modeles, choix
-        techniques et limites.
+        De la donnée ouverte à la recommandation : architecture, transformations, modèles,
+        évaluation et limites connues.
       </p>
 
       <div className="mt-8 space-y-6">
-        <Section num={1} title="Sources de donnees">
+        <Section num={1} title="Périmètre et sources">
           <p>
-            Le projet croise <strong className="text-ink">quatre jeux de donnees ouvertes</strong>{' '}
-            complementaires :
+            Wandrail couvre actuellement les <strong className="text-ink">Pays de la Loire</strong>.
+            Les sources sont le référentiel des gares SNCF, DATAtourisme, OpenStreetMap et
+            les données communales de l’API géographique de l’État (référentiel INSEE).
           </p>
+          <p>
+            Le périmètre régional est un choix de maîtrise du volume et non une promesse de
+            couverture nationale. Les horaires et prix temps réel ne sont pas utilisés.
+          </p>
+        </Section>
+
+        <Section num={2} title="Architecture et pipeline Médaillon">
+          <Code>{`Sources ouvertes
+  -> Bronze : réponses brutes et traçabilité d'extraction
+  -> Silver : typage, filtrage régional, dédoublonnage, géolocalisation
+  -> Gold   : dimensions, agrégats, scores et features ML
+  -> Modèles KMeans / KNN
+  -> API FastAPI
+  -> application React`}</Code>
+          <p>
+            PostgreSQL sépare les schémas <code>bronze</code>, <code>silver</code>,{' '}
+            <code>gold</code> et <code>userapp</code>. Airflow orchestre les scripts, tandis que
+            l’API ne lit que les couches Silver et Gold.
+          </p>
+        </Section>
+
+        <Section num={3} title="Nettoyage et contrôles qualité">
           <ul className="list-disc space-y-1 pl-5">
-            <li>
-              <strong className="text-ink">SNCF Open Data</strong> : referentiel des gares
-              (code UIC, coordonnees, frequentation).
-            </li>
-            <li>
-              <strong className="text-ink">DATAtourisme</strong> : 26 000+ points d'interet
-              touristiques normalises (categorie, adresse, description).
-            </li>
-            <li>
-              <strong className="text-ink">OpenStreetMap</strong> : geometries et enrichissement
-              geographique.
-            </li>
-            <li>
-              <strong className="text-ink">INSEE</strong> : donnees demographiques et
-              administratives des communes.
-            </li>
+            <li>unicité des gares par code UIC et dédoublonnage des POI par nom et coordonnées ;</li>
+            <li>contrôle des coordonnées dans l’emprise des Pays de la Loire ;</li>
+            <li>normalisation des catégories DATAtourisme et OSM ;</li>
+            <li>contrôle des départements 44, 49, 53, 72 et 85 ;</li>
+            <li>contrôle des clés entre POI, gares, dimensions Gold et recommandations ;</li>
+            <li>séparation des valeurs manquantes, invalides et simplement peu précises.</li>
           </ul>
-        </Section>
-
-        <Section num={2} title="Architecture Medaillon (Bronze / Silver / Gold)">
           <p>
-            L'ingestion suit le pattern <strong className="text-ink">Medaillon</strong> pour
-            garantir la tracabilite et la qualite :
-          </p>
-          <Code>{`bronze/  donnees brutes (CSV / JSON / API) - aucune transformation
-silver/  donnees nettoyees + typees + geolocalisees
-         silver.gares         (136 lignes)
-         silver.poi           (26 099 lignes)
-         silver.poi_enrichi   (distance_gare_km, temps_marche_min)
-gold/    donnees business, agregats et features ML
-         gold.dim_gare        (score_attractivite, profil_touristique)
-         gold.dim_profil      (5 profils voyageur)
-         gold.recommandations (top 5 destinations par profil)`}</Code>
-          <p>
-            Chaque etape est reproductible via un script Python dedie
-            (<code className="text-xs">scripts/01_gares.py</code>,
-            <code className="text-xs"> 05_gold_layer.py</code>, etc.), orchestrable dans un DAG
-            Airflow.
+            Le score du dashboard combine complétude (25 %), validité (35 %), unicité (15 %)
+            et intégrité (25 %). Les anomalies restent visibles même lorsque les jointures sont saines.
           </p>
         </Section>
 
-        <Section num={3} title="Enrichissement geographique">
+        <Section num={4} title="Enrichissement géographique">
           <p>
-            Pour chaque POI on calcule sa <strong className="text-ink">distance a la gare</strong>{' '}
-            la plus proche par la formule de haversine (grand cercle) :
+            Chaque POI est associé aux trois gares les plus proches. La distance à vol d’oiseau
+            est calculée avec la formule de Haversine, puis le temps de marche est estimé à 5 km/h.
           </p>
-          <Code>{`d(A, B) = 2·R·arcsin( sqrt(
-    sin²((φB - φA)/2)
-  + cos(φA)·cos(φB)·sin²((λB - λA)/2)
+          <Code>{`d(A,B) = 2 x R x asin(sqrt(
+  sin²((latB-latA)/2)
+  + cos(latA) x cos(latB) x sin²((lonB-lonA)/2)
 ))`}</Code>
           <p>
-            Le temps de marche est deduit d'une vitesse moyenne de{' '}
-            <strong className="text-ink">5 km/h</strong> (12 min/km), coherente avec les
-            recommandations OMS pour un pieton urbain.
+            Cette estimation ne tient pas compte du réseau piéton, des obstacles ni de l’accessibilité PMR.
           </p>
         </Section>
 
-        <Section num={4} title="Scoring d'attractivite">
+        <Section num={5} title="Score d’attractivité">
+          <p>Le score Gold, borné entre 0 et 10, est une somme pondérée de variables normalisées :</p>
+          <Code>{`30 %  nombre de POI à moins de 2 km
+25 %  nombre de POI à moins de 5 km
+15 %  nombre de POI à moins de 10 km
+20 %  diversité des catégories à moins de 10 km
+10 %  fréquentation annuelle de la gare`}</Code>
           <p>
-            Chaque gare recoit un <strong className="text-ink">score d'attractivite (0-10)</strong>{' '}
-            calcule dans <code className="text-xs">gold.dim_gare</code> a partir de plusieurs
-            signaux :
+            Il mesure une richesse d’offre relative au jeu régional. Il ne constitue ni une note
+            utilisateur ni une mesure causale de l’attractivité touristique.
           </p>
+        </Section>
+
+        <Section num={6} title="KMeans : segmentation des POI">
+          <p>
+            KMeans clusterise les <strong className="text-ink">points d’intérêt</strong>, pas les
+            profils voyageurs. Les features actuelles sont latitude, longitude, catégorie encodée
+            et indicateur de popularité, toutes standardisées.
+          </p>
+          <p>
+            Le modèle sérialisé retient <strong className="text-ink">k = 15</strong> et un score de
+            silhouette de <strong className="text-ink">0,434</strong>. Ce résultat est acceptable,
+            mais k atteint la borne supérieure testée et les clusters sont dominés par l’hébergement
+            et la restauration : l’interprétation métier reste donc prudente.
+          </p>
+        </Section>
+
+        <Section num={7} title="KNN : recommandations par profil">
+          <p>
+            Le KNN compare un vecteur de préférences à 136 vecteurs de destinations. Les 11 features
+            standardisées décrivent les volumes par catégorie à 5 km, le nombre total de POI,
+            la diversité et le score d’attractivité. La distance utilisée est la distance cosinus.
+          </p>
+          <p>
+            Cinq profils éditoriaux sont définis : Famille, Solo, Couple, Groupe et Éco. Pour chaque
+            résultat, l’API expose le rang, le score de correspondance et une justification factuelle.
+          </p>
+        </Section>
+
+        <Section num={8} title="Évaluation ML">
+          <p>
+            La silhouette évalue la cohésion et la séparation du KMeans. Pour le KNN, les valeurs
+            historiques appelées Precision@5 et Recall@5 mesurent en réalité la stabilité du top 5
+            sous une perturbation de 10 % du profil synthétique.
+          </p>
+          <p>
+            En l’absence de clics ou d’avis utilisateurs labellisés, il n’existe pas encore de vérité
+            terrain permettant une vraie Precision@5 ou Recall@5 de pertinence. La prochaine étape
+            est un protocole d’évaluation humaine, puis un jeu test gelé et séparé de l’entraînement.
+          </p>
+        </Section>
+
+        <Section num={9} title="API, frontend et déploiement">
+          <p>
+            FastAPI expose des requêtes SQL paramétrées et React consomme uniquement l’API. Le frontend
+            gère les états de chargement, les erreurs de données et les routes applicatives. Render
+            déploie séparément le service web et l’API ; PostgreSQL reste la source de vérité.
+          </p>
+        </Section>
+
+        <Section num={10} title="Limites et perspectives">
           <ul className="list-disc space-y-1 pl-5">
-            <li>nombre de POI dans un rayon de 5 km ;</li>
-            <li>diversite (nombre de categories distinctes) ;</li>
-            <li>densite touristique par km² ;</li>
-            <li>note moyenne des POI (quand disponible).</li>
-          </ul>
-        </Section>
-
-        <Section num={5} title="EcoScore : indice composite visible">
-          <p>
-            Pour chaque destination, l'application calcule et affiche un{' '}
-            <strong className="text-ink">EcoScore (0-100)</strong> pondere :
-          </p>
-          <Code>{`EcoScore = 100 × (0.45·C + 0.30·A + 0.25·R)
-
-C = CO2 evite en train vs voiture (kg, aller-retour) / 80
-A = score d'attractivite / 10
-R = nombre de POI a 5 km / 500`}</Code>
-          <p>
-            Le CO2 evite utilise le facteur ADEME de{' '}
-            <strong className="text-ink">218 g/km</strong> pour la voiture et le ratio de{' '}
-            <strong className="text-ink">-91%</strong> pour le train, sur un aller-retour depuis
-            le hub regional (Nantes). Chaque composante est visible et decomposee dans
-            l'interface, garantissant la transparence de la note.
-          </p>
-        </Section>
-
-        <Section num={6} title="Clustering (KMeans)">
-          <p>
-            Les <strong className="text-ink">5 profils voyageur</strong> (Famille, Solo, Couple,
-            Groupe, Eco) ont ete identifies par clustering{' '}
-            <strong className="text-ink">KMeans</strong> sur les caracteristiques des
-            destinations (nb POI, categories dominantes, densite, accessibilite train).
-          </p>
-        </Section>
-
-        <Section num={7} title="Recommandation (KNN)">
-          <p>
-            Pour chaque profil, un modele <strong className="text-ink">KNN</strong> (k-Nearest
-            Neighbors) selectionne les <strong className="text-ink">5 destinations les plus
-            similaires</strong> au centroide du cluster, materialisees dans{' '}
-            <code className="text-xs">gold.recommandations</code>.
-          </p>
-          <p>
-            L'endpoint <code className="text-xs">GET /api/recommandations/{'{profil}'}</code>{' '}
-            renvoie ces destinations, integrees dans la page{' '}
-            <Link to="/destinations" className="font-semibold text-violet hover:underline">
-              /destinations
-            </Link>
-            .
-          </p>
-        </Section>
-
-        <Section num={8} title="Stack technique">
-          <ul className="list-disc space-y-1 pl-5">
-            <li>
-              <strong className="text-ink">PostgreSQL</strong> : base relationnelle, 3 schemas
-              medaillon.
-            </li>
-            <li>
-              <strong className="text-ink">FastAPI</strong> (Python) : API REST, requetes
-              parametrees, CORS, hachage pbkdf2 pour l'auth.
-            </li>
-            <li>
-              <strong className="text-ink">React + Vite + Tailwind</strong> : SPA moderne,
-              mode sombre, animations sobres.
-            </li>
-            <li>
-              <strong className="text-ink">Leaflet + OSRM</strong> : cartographie et calcul
-              d'itineraire pieton reel.
-            </li>
-            <li>
-              <strong className="text-ink">Render</strong> : deploiement continu depuis GitHub.
-            </li>
-          </ul>
-        </Section>
-
-        <Section num={9} title="Limites et perspectives">
-          <ul className="list-disc space-y-1 pl-5">
-            <li>
-              Perimetre actuel : <strong className="text-ink">Pays de la Loire</strong> (136
-              gares, 26 099 POI). L'architecture est pensee pour la France entiere : ajouter
-              une region = relancer les pipelines, sans toucher au code.
-            </li>
-            <li>
-              Le <strong className="text-ink">score d'attractivite</strong> ne pondere pas
-              encore la saisonnalite ni les avis utilisateurs.
-            </li>
-            <li>
-              Le calcul CO2 utilise des moyennes ADEME ; un affinement par type de train
-              (TER vs TGV) est possible.
-            </li>
-            <li>
-              Prochaine etape : brancher les horaires SNCF en temps reel via l'API Navitia.
-            </li>
+            <li>15 % des POI restent classés « Autre » et doivent être recatégorisés ;</li>
+            <li>l’indicateur DATAtourisme stocké comme note n’est pas une note utilisateur ;</li>
+            <li>les événements de démonstration doivent être remplacés par une source réelle ;</li>
+            <li>les lignes ferroviaires et la météo ne sont pas encore alimentées ;</li>
+            <li>les distances Haversine doivent être complétées par des temps de trajet réels ;</li>
+            <li>l’évaluation KNN doit utiliser des jugements humains ou des interactions anonymisées ;</li>
+            <li>la généralisation à la France entière nécessite des tests de charge et de dérive.</li>
           </ul>
         </Section>
       </div>
 
       <div className="mt-10 rounded-2xl border border-violet bg-violet/5 p-6 text-center">
-        <p className="text-sm text-muted">
-          Voir les indicateurs data en temps reel :
-        </p>
+        <p className="text-sm text-muted">Consulter les contrôles calculés sur la base courante :</p>
         <Link
           to="/data-dashboard"
-          className="mt-3 inline-flex items-center gap-2 rounded-full bg-violet px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-dark"
+          className="mt-3 inline-flex rounded-full bg-violet px-6 py-2.5 text-sm font-bold text-white transition hover:bg-violet-dark"
         >
-          Tableau de bord donnees &rarr;
+          Tableau de bord données &rarr;
         </Link>
       </div>
     </div>

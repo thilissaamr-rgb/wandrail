@@ -69,13 +69,26 @@ export default function DestinationCard({ dest }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-4 py-3.5">
-        <span className="text-sm font-medium text-muted">
-          {dest.nb_poi_5km ? `${dest.nb_poi_5km.toLocaleString('fr-FR')} activites` : 'A decouvrir'}
-        </span>
-        <span className="text-sm font-bold text-violet opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          Explorer &rarr;
-        </span>
+      <div className="px-4 py-3.5">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-muted">
+            {dest.nb_poi_5km ? `${dest.nb_poi_5km.toLocaleString('fr-FR')} activités` : 'À découvrir'}
+          </span>
+          {dest.score_reco ? (
+            <span className="rounded-full bg-violet/10 px-2 py-1 text-xs font-bold text-violet">
+              Match {Number(dest.score_reco).toFixed(1)}/10
+            </span>
+          ) : (
+            <span className="text-sm font-bold text-violet opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+              Explorer &rarr;
+            </span>
+          )}
+        </div>
+        {dest.raison && (
+          <p className="mt-2 border-t border-line pt-2 text-xs leading-relaxed text-muted">
+            <strong className="text-ink">Pourquoi :</strong> {dest.raison}
+          </p>
+        )}
       </div>
     </Link>
   )

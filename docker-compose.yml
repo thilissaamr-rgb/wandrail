@@ -6,7 +6,7 @@ services:
     container_name: tourisme_postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 00000
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD doit etre defini dans .env}
       POSTGRES_DB: tourisme_train
     ports:
       - "5434:5432"
@@ -24,7 +24,7 @@ services:
     container_name: airflow_postgres
     environment:
       POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD:-airflow_local_only}
       POSTGRES_DB: airflow
     volumes:
       - airflow_postgres_data:/var/lib/postgresql/data
@@ -40,7 +40,7 @@ services:
     container_name: airflow_init
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:-airflow_local_only}@postgres_airflow/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     command: bash -c "airflow db init && (airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@tourisme.fr || true)"
     depends_on:
@@ -56,17 +56,17 @@ services:
       - "8085:8080"
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:-airflow_local_only}@postgres_airflow/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-      AIRFLOW__WEBSERVER__SECRET_KEY: tourisme_train_secret
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-airflow_local_development_only}
       AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT: 300
       AIRFLOW__WEBSERVER__WORKERS: 2
       DB_HOST: tourisme_postgres
       DB_PORT: 5432
       DB_NAME: tourisme_train
       DB_USER: postgres
-      DB_PASSWORD: 00000
-      DATATOURISME_API_KEY: 0f58925d-4b95-4ca2-b41b-9d7ea9527421
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD doit etre defini dans .env}
+      DATATOURISME_API_KEY: ${DATATOURISME_API_KEY:-}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -90,14 +90,14 @@ services:
     command: scheduler
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:-airflow_local_only}@postgres_airflow/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
       DB_HOST: tourisme_postgres
       DB_PORT: 5432
       DB_NAME: tourisme_train
       DB_USER: postgres
-      DB_PASSWORD: 00000
-      DATATOURISME_API_KEY: 0f58925d-4b95-4ca2-b41b-9d7ea9527421
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD doit etre defini dans .env}
+      DATATOURISME_API_KEY: ${DATATOURISME_API_KEY:-}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
@@ -117,14 +117,13 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: wandrail2025
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-grafana_local_development_only}
       GF_SERVER_ROOT_URL: http://localhost:3000
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_INSTALL_PLUGINS: ""
-      POSTGRES_PASSWORD: "00000"
-      SUPABASE_PASSWORD: "Wandrail2025"
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD doit etre defini dans .env}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning

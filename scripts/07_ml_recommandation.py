@@ -5,12 +5,11 @@ Pour chaque profil (Famille, Solo, Couple, Groupe, Eco) :
   1. Construit la matrice features des gares depuis gold.dim_gare
   2. Pondere les features selon les preferences du profil
   3. KNN (k=10, metrique cosinus) trouve les gares les plus proches du profil
-  4. Calcule Precision@5 et Recall@5 sur un jeu de test synthetique
+  4. Mesure la stabilite du top 5 sous perturbation du profil
   5. Sauvegarde dans gold.recommandations
 
-Metriques calculees :
-  - Precision@5 : proportion de recommandations pertinentes parmi les 5 retournees
-  - Recall@5    : proportion de destinations pertinentes recuperees sur les 5 meilleures possibles
+Limite d'evaluation : Precision@5 et Recall@5 exigent une verite terrain
+(clics, avis ou jugements humains), absente du jeu actuel.
 """
 
 import sys
@@ -23,7 +22,6 @@ from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import KFold
 
 sys.stdout.reconfigure(encoding='utf-8')
 load_dotenv()
@@ -192,11 +190,11 @@ knn = NearestNeighbors(n_neighbors=min(10, len(df_gares)), metric="cosine")
 knn.fit(X_scaled)
 
 
-# -- Etape 4 : Evaluation Precision@5 et Recall@5 -----------------------------
-# Approche : on cree des vecteurs de test en perturbant legerement les vecteurs
-# de preference et on verifie que les top-5 restent stables.
+# -- Etape 4 : Stabilite du top 5 ----------------------------------------------
+# Sans clics, notes ou jugements humains labellises, Precision@5 et Recall@5
+# ne sont pas calculables. On mesure uniquement la stabilite sous perturbation.
 
-print("\nEvaluation Precision@5 et Recall@5...")
+print("\nEvaluation de stabilite du top 5...")
 
 def construire_vecteur_profil(prefs: dict, feature_cols: list, max_vals: dict) -> np.ndarray:
     """
@@ -228,8 +226,7 @@ for nom_profil, prefs in PREFS_PROFIL.items():
     top_5_ref      = set(indices_ref[0][:5])
 
     # Generer 10 versions perturbees du vecteur de profil (bruit de 10%)
-    precision_scores = []
-    recall_scores    = []
+    stability_scores = []
     np.random.seed(42)
 
     for _ in range(10):
@@ -239,18 +236,16 @@ for nom_profil, prefs in PREFS_PROFIL.items():
         _, idx_b   = knn.kneighbors(vec_b_sc, n_neighbors=min(10, len(df_gares)))
         top_5_b    = set(idx_b[0][:5])
 
-        # Precision@5 : combien des 5 recommandations bruitees sont dans le top-5 de reference
-        precision = len(top_5_ref & top_5_b) / 5.0
-        # Recall@5    : meme calcul (symetrique ici car |top_5_ref| = 5)
-        recall    = len(top_5_ref & top_5_b) / max(len(top_5_ref), 1)
+        stability_scores.append(len(top_5_ref & top_5_b) / 5.0)
 
-        precision_scores.append(precision)
-        recall_scores.append(recall)
-
-    p5  = round(np.mean(precision_scores), 4)
-    r5  = round(np.mean(recall_scores), 4)
-    metriques_par_profil[nom_profil] = {"precision_at_5": p5, "recall_at_5": r5}
-    print(f"  {nom_profil:<12} : Precision@5 = {p5:.2f} | Recall@5 = {r5:.2f}")
+    stability = round(np.mean(stability_scores), 4)
+    metriques_par_profil[nom_profil] = {
+        "precision_at_5": None,
+        "recall_at_5": None,
+        "stability_at_5": stability,
+        "evaluation_status": "verite_terrain_absente",
+    }
+    print(f"  {nom_profil:<12} : Stabilite@5 = {stability:.2f}")
 
 # Sauvegarde des metriques dans docs/
 import json
@@ -280,6 +275,16 @@ print(f"  Modele sauvegarde : {model_file}")
 print("\nGeneration des recommandations...")
 
 recommandations = []
+CATEGORY_LABELS = {
+    "nb_hebergement": "hébergements",
+    "nb_restauration": "restaurants",
+    "nb_culture": "lieux culturels",
+    "nb_patrimoine": "sites patrimoniaux",
+    "nb_nature": "sites nature",
+    "nb_sport_loisirs": "activités sportives",
+    "nb_loisirs": "activités de loisirs",
+    "nb_evenement": "événements",
+}
 
 for _, profil in df_profils.iterrows():
     nom_profil = profil["nom"]
@@ -302,14 +307,25 @@ for _, profil in df_profils.iterrows():
         nb_cat = int(gare.get("nb_categories", 0) or 0)
         sc_att = float(gare.get("score_attractivite", 0) or 0)
 
+        preferred_categories = sorted(
+            ((key, weight) for key, weight in prefs.items() if key in CATEGORY_LABELS),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        for feature, _weight in preferred_categories[:3]:
+            count = int(gare.get(feature, 0) or 0)
+            if count > 0:
+                raisons.append(f"{count} {CATEGORY_LABELS[feature]}")
+            if len(raisons) == 2:
+                break
         if nb_poi > 10:
-            raisons.append(f"{nb_poi} activites a moins de 5 km")
+            raisons.append(f"{nb_poi} activités à moins de 5 km")
         if nb_cat > 3:
-            raisons.append(f"{nb_cat} types d'activites differents")
+            raisons.append(f"{nb_cat} types d'activités différents")
         if sc_att > 5:
-            raisons.append(f"Score attractivite {sc_att:.1f}/10")
+            raisons.append(f"Score d'attractivité {sc_att:.1f}/10")
 
-        raison = " - ".join(raisons) if raisons else "Destination tranquille et accessible"
+        raison = " - ".join(raisons) if raisons else "Destination calme et accessible"
 
         recommandations.append({
             "id_profil"   : int(profil["id"]),
@@ -341,8 +357,8 @@ print(f"  {len(df_reco)} recommandations inserees")
 print("\n" + "=" * 60)
 print("RESUME RECOMMANDATIONS")
 print("=" * 60)
-print("\n  Metriques d'evaluation :")
+print("\n  Evaluation (sans verite terrain) :")
 for nom, m in metriques_par_profil.items():
-    print(f"  {nom:<12} : Precision@5={m['precision_at_5']:.2f} | Recall@5={m['recall_at_5']:.2f}")
+    print(f"  {nom:<12} : Stabilite@5={m['stability_at_5']:.2f}")
 
 print("\nScript 07 termine.")

@@ -27,7 +27,8 @@ import matplotlib.pyplot as plt
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.metrics import silhouette_score
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -88,7 +89,7 @@ print("=" * 60)
 
 print("\nChargement des POI depuis silver.poi...")
 df = pd.read_sql("""
-    SELECT id, nom, categorie, commune, latitude, longitude, note_moyenne
+    SELECT id, nom, categorie, commune, latitude, longitude
     FROM silver.poi
     WHERE latitude IS NOT NULL AND longitude IS NOT NULL
 """, engine)
@@ -103,20 +104,18 @@ if len(df) < 50:
 
 print("\nPreparation des features...")
 
-# Encode la categorie en valeur numerique
-le             = LabelEncoder()
-df["cat_enc"]  = le.fit_transform(df["categorie"].fillna("Autre"))
+# One-hot encoding : une categorie nominale n'a pas d'ordre numerique naturel.
+df["categorie"] = df["categorie"].fillna("Autre")
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("coordinates", StandardScaler(), ["latitude", "longitude"]),
+        ("category", OneHotEncoder(handle_unknown="ignore", sparse_output=False), ["categorie"]),
+    ],
+    sparse_threshold=0,
+)
+X_scaled = preprocessor.fit_transform(df[["latitude", "longitude", "categorie"]])
 
-# Normalise la note entre 0 et 1
-note_max        = df["note_moyenne"].max()
-df["note_norm"] = (df["note_moyenne"].fillna(0) / note_max) if note_max > 0 else 0.0
-
-# Features : position GPS, categorie encodee, note normalisee
-X        = df[["latitude", "longitude", "cat_enc", "note_norm"]].copy()
-scaler   = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-print(f"  Features utilisees : latitude, longitude, categorie (encodee), note (normalisee)")
+print("  Features utilisees : latitude/longitude standardisees + categorie one-hot")
 print(f"  Matrice X : {X_scaled.shape}")
 
 
@@ -124,16 +123,18 @@ print(f"  Matrice X : {X_scaled.shape}")
 # On teste de 2 a 10 clusters et on trace l'inertie (sum of squared distances).
 # Le "coude" de la courbe indique le nombre optimal de clusters.
 
-print("\nMethode Elbow (2 a 10 clusters)...")
+print("\nMethode Elbow (2 a 15 clusters)...")
 
 K_MIN  = 2
-K_MAX  = 10
+K_MAX  = 15
 inerties = []
 silhouettes = []
 
 # Sous-echantillon pour accelerer si beaucoup de POI
 sample_size = min(5000, len(X_scaled))
-X_sample    = X_scaled[:sample_size]
+rng = np.random.default_rng(42)
+sample_indices = rng.choice(len(X_scaled), size=sample_size, replace=False)
+X_sample = X_scaled[sample_indices]
 
 for k in range(K_MIN, K_MAX + 1):
     km_tmp = KMeans(n_clusters=k, random_state=42, n_init=10, max_iter=200)
@@ -167,6 +168,8 @@ print(f"\n  Graphe Elbow sauvegarde : {elbow_path}")
 # Choix automatique : k avec le meilleur Silhouette Score
 best_k = range(K_MIN, K_MAX + 1)[silhouettes.index(max(silhouettes))]
 print(f"\n  Nombre de clusters optimal (max silhouette) : k = {best_k}")
+if best_k in (K_MIN, K_MAX):
+    print("  Avertissement : optimum en bord de grille, elargir la recherche avant conclusion.")
 
 
 # -- Etape 4 : KMeans avec le k optimal ----------------------------------------
@@ -182,7 +185,7 @@ labels = kmeans.fit_predict(X_scaled)
 df["cluster_id"] = labels
 
 # Calcul du Silhouette Score sur l'ensemble complet
-sil_final = silhouette_score(X_scaled[:sample_size], labels[:sample_size])
+sil_final = silhouette_score(X_sample, labels[sample_indices])
 print(f"  Silhouette Score final : {sil_final:.4f}")
 
 if sil_final < 0.3:
@@ -230,13 +233,29 @@ for c_id, info in cluster_info.items():
 
 model_data = {
     "kmeans"       : kmeans,
-    "scaler"       : scaler,
-    "label_encoder": le,
+    "preprocessor" : preprocessor,
     "noms_clusters": NOMS_CLUSTERS,
     "best_k"       : best_k,
     "silhouette"   : sil_final,
-    "feature_names": ["latitude", "longitude", "cat_enc", "note_norm"],
+    "feature_names": ["latitude", "longitude", "categorie_one_hot"],
 }
+
+metrics_file = os.path.join(DOCS_PATH, "metriques_kmeans.json")
+with open(metrics_file, "w", encoding="utf-8") as stream:
+    import json
+    json.dump(
+        {
+            "best_k": best_k,
+            "silhouette": round(float(sil_final), 4),
+            "grid": [K_MIN, K_MAX],
+            "sample_size": sample_size,
+            "features": ["latitude", "longitude", "categorie_one_hot"],
+            "evaluation_status": "optimum_en_borne_haute" if best_k == K_MAX else "interieur_grille",
+        },
+        stream,
+        indent=2,
+        ensure_ascii=False,
+    )
 
 model_file = os.path.join(MODEL_PATH, "kmeans_poi.pkl")
 with open(model_file, "wb") as f:
@@ -256,8 +275,6 @@ df["cluster_nom"]        = df["cluster_id"].map(lambda x: NOMS_CLUSTERS[x][0])
 df["cluster_couleur"]    = df["cluster_id"].map(lambda x: NOMS_CLUSTERS[x][1])
 df["score_appartenance"] = np.round(scores_app, 4)
 
-# Recuperer les IDs de gold.dim_poi dans le meme ordre
-df_dim_poi = pd.read_sql("SELECT id FROM gold.dim_poi ORDER BY id", engine)
 df_sorted  = df.sort_values("id").reset_index(drop=True)
 
 with engine.connect() as conn:
@@ -265,15 +282,14 @@ with engine.connect() as conn:
     conn.commit()
 
 clusters_rows = []
-for i, row in df_sorted.iterrows():
-    if i < len(df_dim_poi):
-        clusters_rows.append({
-            "id_poi"            : int(df_dim_poi.iloc[i]["id"]),
-            "cluster_id"        : int(row["cluster_id"]),
-            "cluster_nom"       : row["cluster_nom"],
-            "cluster_couleur"   : row["cluster_couleur"],
-            "score_appartenance": float(row["score_appartenance"]),
-        })
+for _, row in df_sorted.iterrows():
+    clusters_rows.append({
+        "id_poi"            : int(row["id"]),
+        "cluster_id"        : int(row["cluster_id"]),
+        "cluster_nom"       : row["cluster_nom"],
+        "cluster_couleur"   : row["cluster_couleur"],
+        "score_appartenance": float(row["score_appartenance"]),
+    })
 
 pd.DataFrame(clusters_rows).to_sql(
     "poi_clusters", engine, schema="gold", if_exists="append", index=False
@@ -281,17 +297,16 @@ pd.DataFrame(clusters_rows).to_sql(
 
 # Mettre a jour gold.dim_poi
 with engine.connect() as conn:
-    for i, row in df_sorted.iterrows():
-        if i < len(df_dim_poi):
-            conn.execute(text("""
-                UPDATE gold.dim_poi
-                SET cluster_nom = :nom, score_popularite = :score
-                WHERE id = :id
-            """), {
-                "nom"  : row["cluster_nom"],
-                "score": float(row["score_appartenance"]),
-                "id"   : int(df_dim_poi.iloc[i]["id"]),
-            })
+    for _, row in df_sorted.iterrows():
+        conn.execute(text("""
+            UPDATE gold.dim_poi
+            SET cluster_nom = :nom, score_popularite = :score
+            WHERE id = :id
+        """), {
+            "nom"  : row["cluster_nom"],
+            "score": float(row["score_appartenance"]),
+            "id"   : int(row["id"]),
+        })
     conn.commit()
 
 

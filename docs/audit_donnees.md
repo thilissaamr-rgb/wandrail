@@ -27,7 +27,7 @@
 ### bronze.poi_raw + bronze.points_interet
 - **17 184 + 15 516 lignes** — deux tables pour les POI DATAtourisme PDL
 - Anomalie : deux tables distinctes pour la même source → à consolider
-- Source : DATAtourisme API (clé `0f58925d-4b95-4ca2-b41b-9d7ea9527421`)
+- Source : DATAtourisme API (clé fournie par la variable `DATATOURISME_API_KEY`)
 
 ### Tables vides (0 lignes)
 | Table | Source attendue | Action |

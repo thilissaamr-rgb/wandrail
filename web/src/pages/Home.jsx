@@ -8,11 +8,11 @@ import ProfilCard from '../components/ProfilCard'
 import { HERO_IMAGE } from '../lib/images'
 
 const PROFILS = [
-  { nom: 'Famille', desc: 'Parcs, activites enfants, nature, grands espaces' },
-  { nom: 'Solo', desc: 'Culture, patrimoine, aventure en liberte' },
-  { nom: 'Couple', desc: 'Gastronomie, charme, romantisme, detente' },
-  { nom: 'Groupe', desc: 'Sport, evenements, animation, fun collectif' },
-  { nom: 'Eco', desc: 'Nature, mobilite douce, empreinte minimale' },
+  { nom: 'Famille', desc: 'Parcs, activités enfants, nature, grands espaces' },
+  { nom: 'Solo', desc: 'Culture, patrimoine, aventure en liberté' },
+  { nom: 'Couple', desc: 'Gastronomie, charme, romantisme, détente' },
+  { nom: 'Groupe', desc: 'Sport, événements, animation, plaisir collectif' },
+  { nom: 'Eco', desc: 'Nature, mobilité douce, empreinte minimale' },
 ]
 
 export default function Home() {
@@ -59,12 +59,12 @@ export default function Home() {
               Pays de la Loire - Tourisme en train
             </div>
             <h1 className="mb-6 text-5xl font-black leading-[1.05] tracking-tighter text-white drop-shadow-lg md:text-6xl">
-              Ou voulez-vous
+              Où voulez-vous
               <br />
               aller <span className="text-violet-light">en train ?</span>
             </h1>
             <p className="mb-9 text-base leading-relaxed text-white/85 drop-shadow">
-              Decouvrez les Pays de la Loire a travers ses gares, ses paysages et ses lieux uniques.
+              Découvrez les Pays de la Loire à travers ses gares, ses paysages et ses lieux uniques.
             </p>
 
             {/* Barre de recherche + filtres */}
@@ -82,7 +82,7 @@ export default function Home() {
                 onChange={(e) => setDep(e.target.value)}
                 className="h-12 rounded-xl bg-transparent px-3 text-sm text-ink outline-none"
               >
-                <option value="">Tous les departements</option>
+                <option value="">Tous les départements</option>
                 {deps.map((d) => (
                   <option key={d} value={d}>
                     {d}
@@ -112,7 +112,7 @@ export default function Home() {
       <section className="bg-card2 px-6 py-14">
         <div className="mx-auto max-w-page">
           <h2 className="text-3xl font-black tracking-tighter text-ink">
-            Quel type de voyageur etes-vous ?
+            Quel type de voyageur êtes-vous ?
           </h2>
           <p className="mb-8 mt-1 text-sm text-muted">
             Votre profil - des recommandations sur mesure
@@ -145,7 +145,7 @@ export default function Home() {
               Destinations incontournables
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Selectionnees pour vous - attractivite + accessibilite train
+              Sélectionnées pour vous - attractivité + accessibilité ferroviaire
             </p>
           </div>
           <button

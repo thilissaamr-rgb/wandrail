@@ -10,7 +10,8 @@ const STORE = 'wandrail:user'
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem(STORE)) || null
+      const stored = JSON.parse(localStorage.getItem(STORE)) || null
+      return stored?.access_token ? stored : null
     } catch {
       return null
     }

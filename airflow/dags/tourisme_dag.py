@@ -45,8 +45,8 @@ def run_script(script_name: str):
         raise RuntimeError(f"Script {script_name} a echoue :\n{result.stderr}")
 
 
-# Definition des taches
-t0  = PythonOperator(task_id="init_database",          python_callable=lambda: run_script("00_init_db.py"),    dag=dag)
+# Definition des taches. L'initialisation destructive de la base est volontairement
+# absente du DAG recurrent : scripts/00_init_db.py est reserve au bootstrap manuel.
 t1  = PythonOperator(task_id="extract_gares",          python_callable=lambda: run_script("01_gares.py"),      dag=dag)
 t2  = PythonOperator(task_id="extract_poi_datatourisme",python_callable=lambda: run_script("02_datatourisme.py"), dag=dag)
 t3  = PythonOperator(task_id="extract_osm",            python_callable=lambda: run_script("03_osm.py"),        dag=dag)
@@ -62,16 +62,13 @@ t10 = PythonOperator(task_id="population_insee",       python_callable=lambda: r
 # ----------------------------------------------------------
 # Ordre d'execution
 #
-#  t0 (init DB)
-#    |
-#  t1 (gares) ----+
-#  t2 (POI DT) ---+---> t4 (enrichissement Silver)
-#  t3 (OSM) ------+              |
-#  t9 (events)                   v
-#  t10 (INSEE)              t5 (Gold layer)
-#                           /           \
-#                    t6 (KMeans)     t7 (KNN)
-#                                    t8 (Navitia)
+#  t1 (gares) -> t2 (POI DT) -> t3 (OSM) -> t4 (Silver) -> t5 (Gold)
+#                                                        /    |    \
+#                                              t6 (KMeans) t7 (KNN) t8 (Navitia)
+#                                                            |
+#                                                       t10 (INSEE)
+#  t9 (evenements) est independant du coeur analytique.
 # ----------------------------------------------------------
 
-t0 >> [t1, t2, t3, t9, t10] >> t4 >> t5 >> [t6, t7, t8]
+t1 >> t2 >> t3 >> t4 >> t5 >> [t6, t7, t8]
+t5 >> t10

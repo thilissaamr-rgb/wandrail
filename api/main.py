@@ -10,21 +10,24 @@ Lancement local :
 
 Documentation interactive : http://localhost:8000/docs
 """
-import hashlib
 import os
-import secrets
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from db import engine
+from analyst import build_decision_support, build_ml_metrics, build_overview, build_pipeline
+from quality import build_data_quality_report
+from security import create_access_token, current_user_id, hash_password, verify_password
 
 app = FastAPI(
     title="Wandrail API",
     description="Donnees tourisme en train - Pays de la Loire",
-    version="0.1.0",
+    version="1.0.0",
 )
 
 # ── CORS : autoriser le front (dev Vite + prod) ────────────────────
@@ -50,36 +53,36 @@ def rows_to_dicts(result):
 
 
 # ── Authentification (hachage pbkdf2, identique a l'app Streamlit) ──
-def hash_pw(pw: str) -> str:
-    salt = secrets.token_hex(16)
-    h = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), 100000)
-    return f"{salt}:{h.hex()}"
-
-
-def verify_pw(pw: str, stored: str) -> bool:
-    try:
-        salt, h = stored.split(":")
-        h2 = hashlib.pbkdf2_hmac("sha256", pw.encode(), salt.encode(), 100000)
-        return secrets.compare_digest(h2.hex(), h)
-    except Exception:
-        return False
-
-
 class RegisterIn(BaseModel):
-    email: str
-    pseudo: str
-    password: str
-    ville_depart: str | None = None
+    email: str = Field(min_length=5, max_length=255)
+    pseudo: str = Field(min_length=2, max_length=80)
+    password: str = Field(min_length=8, max_length=128)
+    ville_depart: str | None = Field(default=None, max_length=100)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        value = value.strip().lower()
+        if value.count("@") != 1 or "." not in value.rsplit("@", 1)[1]:
+            raise ValueError("Adresse e-mail invalide")
+        return value
 
 
 class LoginIn(BaseModel):
-    email: str
-    password: str
+    email: str = Field(min_length=5, max_length=255)
+    password: str = Field(min_length=1, max_length=128)
 
 
 class FavoriteIn(BaseModel):
-    user_id: int
-    destination: str
+    destination: str = Field(min_length=1, max_length=200)
+
+
+@app.exception_handler(SQLAlchemyError)
+def database_exception_handler(_request, _exc):
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Service de donnees temporairement indisponible"},
+    )
 
 
 # ── Endpoints ──────────────────────────────────────────────────────
@@ -90,8 +93,8 @@ def health():
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return {"status": "ok", "db": "ok"}
-    except Exception as exc:
-        return {"status": "ok", "db": "error", "detail": str(exc)}
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "error", "db": "error"})
 
 
 @app.get("/api/data-quality")
@@ -102,91 +105,60 @@ def data_quality():
     et un score global de qualite des donnees.
     """
     with engine.connect() as conn:
-        nb_gares = conn.execute(text("SELECT COUNT(*) FROM silver.gares")).scalar()
-        nb_gares_geo = conn.execute(
-            text("SELECT COUNT(*) FROM silver.gares WHERE latitude IS NOT NULL")
-        ).scalar()
-        nb_poi = conn.execute(text("SELECT COUNT(*) FROM silver.poi")).scalar()
-        nb_poi_geo = conn.execute(
-            text("SELECT COUNT(*) FROM silver.poi WHERE latitude IS NOT NULL")
-        ).scalar()
-        nb_dest_analysees = conn.execute(
-            text("SELECT COUNT(*) FROM gold.dim_gare WHERE score_attractivite IS NOT NULL")
-        ).scalar()
-        nb_deps = conn.execute(
-            text("SELECT COUNT(DISTINCT departement) FROM silver.gares WHERE departement IS NOT NULL")
-        ).scalar()
-        nb_profils = conn.execute(text("SELECT COUNT(*) FROM gold.dim_profil")).scalar()
+        return build_data_quality_report(conn)
 
-        top_categories = rows_to_dicts(
-            conn.execute(
-                text(
-                    """
-                    SELECT categorie AS label, COUNT(*) AS nb
-                    FROM silver.poi
-                    WHERE categorie IS NOT NULL
-                    GROUP BY categorie
-                    ORDER BY nb DESC
-                    """
-                )
-            )
-        )
-        top_departements = rows_to_dicts(
-            conn.execute(
-                text(
-                    """
-                    SELECT g.departement AS label, COUNT(*) AS nb_gares
-                    FROM silver.gares g
-                    WHERE g.departement IS NOT NULL
-                    GROUP BY g.departement
-                    ORDER BY nb_gares DESC
-                    """
-                )
-            )
-        )
-        top_destinations = rows_to_dicts(
-            conn.execute(
-                text(
-                    """
-                    SELECT g.commune AS commune, g.nom_gare AS nom_gare,
-                           g.departement AS departement,
-                           d.score_attractivite AS score, d.nb_poi_5km AS nb_poi
-                    FROM silver.gares g
-                    JOIN gold.dim_gare d ON d.code_uic = g.code_uic
-                    WHERE d.score_attractivite IS NOT NULL
-                    ORDER BY d.score_attractivite DESC
-                    LIMIT 10
-                    """
-                )
-            )
-        )
 
-    # Score qualite : moyenne ponderee de la completude (geo, analyses)
-    geo_gares = nb_gares_geo / nb_gares if nb_gares else 0
-    geo_poi = nb_poi_geo / nb_poi if nb_poi else 0
-    analyses = nb_dest_analysees / nb_gares if nb_gares else 0
-    quality_score = round(100 * (0.35 * geo_gares + 0.4 * geo_poi + 0.25 * analyses), 1)
-
+@app.get("/api/anomalies")
+def anomalies():
+    with engine.connect() as conn:
+        report = build_data_quality_report(conn)
     return {
-        "kpi": {
-            "nb_gares": nb_gares,
-            "nb_gares_geo": nb_gares_geo,
-            "nb_poi": nb_poi,
-            "nb_poi_geo": nb_poi_geo,
-            "nb_dest_analysees": nb_dest_analysees,
-            "nb_departements": nb_deps,
-            "nb_profils": nb_profils,
-        },
-        "completude": {
-            "gares_geo_pct": round(100 * geo_gares, 1),
-            "poi_geo_pct": round(100 * geo_poi, 1),
-            "analyses_pct": round(100 * analyses, 1),
-        },
-        "quality_score": quality_score,
-        "top_categories": top_categories,
-        "top_departements": top_departements,
-        "top_destinations": top_destinations,
+        "quality_score": report["quality_score"],
+        "anomalies": report["anomalies"],
+        "anomalies_total": report["anomalies_total"],
+        "nulls": report["nulls"],
+        "nulls_total": report["nulls_total"],
     }
+
+
+@app.get("/api/pipeline")
+def pipeline():
+    with engine.connect() as conn:
+        return build_pipeline(conn)
+
+
+@app.get("/api/ml-metrics")
+def ml_metrics():
+    with engine.connect() as conn:
+        return build_ml_metrics(conn)
+
+
+@app.get("/api/analyste/overview")
+def analyste_overview():
+    with engine.connect() as conn:
+        return build_overview(conn)
+
+
+@app.get("/api/analyste/decision")
+def analyste_decision():
+    with engine.connect() as conn:
+        return build_decision_support(conn)
+
+
+@app.get("/api/top-destinations")
+def top_destinations(limit: int = Query(10, ge=1, le=50)):
+    sql = text(
+        """
+        SELECT nom_gare, commune, departement, score_attractivite AS score,
+               nb_poi_5km, nb_categories, nb_voyageurs_annuel
+        FROM gold.dim_gare
+        WHERE score_attractivite IS NOT NULL
+        ORDER BY score_attractivite DESC, nb_poi_5km DESC
+        LIMIT :limit
+        """
+    )
+    with engine.connect() as conn:
+        return rows_to_dicts(conn.execute(sql, {"limit": limit}))
 
 
 @app.get("/api/stats")
@@ -337,7 +309,8 @@ def recommandations(profil: str):
         """
         SELECT s.nom_gare, s.commune, s.departement, s.latitude, s.longitude,
                d.score_attractivite, d.profil_touristique,
-               d.nb_poi_5km, d.nb_categories
+               d.nb_poi_5km, d.nb_categories,
+               r.rang, r.score_reco, r.raison
         FROM gold.recommandations r
         JOIN gold.dim_profil p ON p.id = r.id_profil
         JOIN gold.dim_gare d ON d.id = r.id_gare
@@ -347,16 +320,17 @@ def recommandations(profil: str):
         """
     )
     with engine.connect() as conn:
-        return rows_to_dicts(conn.execute(sql, {"profil": profil}))
+        rows = rows_to_dicts(conn.execute(sql, {"profil": profil}))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Profil de recommandation introuvable")
+    return rows
 
 
 # ── Comptes utilisateurs ───────────────────────────────────────────
 @app.post("/api/auth/register")
 def register(data: RegisterIn):
     """Cree un compte. Renvoie l'utilisateur (sans le mot de passe)."""
-    email = data.email.strip().lower()
-    if not email or not data.password or not data.pseudo.strip():
-        raise HTTPException(status_code=400, detail="Champs manquants")
+    email = data.email
     with engine.begin() as conn:
         existing = conn.execute(
             text("SELECT id FROM userapp.users WHERE email = :e"), {"e": email}
@@ -371,10 +345,16 @@ def register(data: RegisterIn):
                 RETURNING id, pseudo, email
                 """
             ),
-            {"e": email, "p": data.pseudo.strip(), "h": hash_pw(data.password),
+            {"e": email, "p": data.pseudo.strip(), "h": hash_password(data.password),
              "v": data.ville_depart},
         ).fetchone()
-    return {"id": row[0], "pseudo": row[1], "email": row[2]}
+    return {
+        "id": row[0],
+        "pseudo": row[1],
+        "email": row[2],
+        "access_token": create_access_token(row[0]),
+        "token_type": "bearer",
+    }
 
 
 @app.post("/api/auth/login")
@@ -386,15 +366,33 @@ def login(data: LoginIn):
             text("SELECT id, pseudo, email, password_hash FROM userapp.users WHERE email = :e"),
             {"e": email},
         ).fetchone()
-    if row is None or not verify_pw(data.password, row[3]):
+    if row is None or not verify_password(data.password, row[3]):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    return {"id": row[0], "pseudo": row[1], "email": row[2]}
+    return {
+        "id": row[0],
+        "pseudo": row[1],
+        "email": row[2],
+        "access_token": create_access_token(row[0]),
+        "token_type": "bearer",
+    }
 
 
 # ── Favoris ────────────────────────────────────────────────────────
 @app.get("/api/favorites/{user_id}")
-def list_favorites(user_id: int):
-    """Liste des destinations favorites d'un utilisateur (forme destination)."""
+def list_favorites_legacy(user_id: int, authenticated_id: int = Depends(current_user_id)):
+    """Route historique conservee, mais protegee par le jeton du proprietaire."""
+    if user_id != authenticated_id:
+        raise HTTPException(status_code=403, detail="Acces refuse")
+    return _list_favorites(user_id)
+
+
+@app.get("/api/favorites")
+def list_favorites(user_id: int = Depends(current_user_id)):
+    """Liste les favoris de l'utilisateur authentifie."""
+    return _list_favorites(user_id)
+
+
+def _list_favorites(user_id: int):
     sql = text(
         """
         SELECT g.nom_gare, g.commune, g.departement, g.latitude, g.longitude,
@@ -411,27 +409,33 @@ def list_favorites(user_id: int):
 
 
 @app.post("/api/favorites")
-def add_favorite(data: FavoriteIn):
+def add_favorite(data: FavoriteIn, user_id: int = Depends(current_user_id)):
     """Ajoute un favori (sans doublon)."""
     with engine.begin() as conn:
+        destination_exists = conn.execute(
+            text("SELECT 1 FROM silver.gares WHERE nom_gare = :d"),
+            {"d": data.destination},
+        ).fetchone()
+        if not destination_exists:
+            raise HTTPException(status_code=404, detail="Destination introuvable")
         ex = conn.execute(
             text("SELECT id FROM userapp.user_favorites WHERE user_id = :u AND destination = :d"),
-            {"u": data.user_id, "d": data.destination},
+            {"u": user_id, "d": data.destination},
         ).fetchone()
         if not ex:
             conn.execute(
                 text("INSERT INTO userapp.user_favorites (user_id, destination) VALUES (:u, :d)"),
-                {"u": data.user_id, "d": data.destination},
+                {"u": user_id, "d": data.destination},
             )
     return {"ok": True, "favorite": True}
 
 
 @app.delete("/api/favorites")
-def remove_favorite(data: FavoriteIn):
+def remove_favorite(data: FavoriteIn, user_id: int = Depends(current_user_id)):
     """Retire un favori."""
     with engine.begin() as conn:
         conn.execute(
             text("DELETE FROM userapp.user_favorites WHERE user_id = :u AND destination = :d"),
-            {"u": data.user_id, "d": data.destination},
+            {"u": user_id, "d": data.destination},
         )
     return {"ok": True, "favorite": False}

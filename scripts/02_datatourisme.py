@@ -4,10 +4,10 @@ Script 02 - Points d'interet DATAtourisme (Pays de la Loire)
 Etapes :
   1. Appelle l'API DATAtourisme pour recuperer tous les POI PDL
   2. Extrait nom, categorie, commune, GPS, telephone, site web
-  3. Calcule un score de popularite synthetique base sur les donnees disponibles
+  3. Calcule un indicateur technique de qualite de la source
   4. Insere dans bronze.poi_raw puis silver.poi
 
-Score de popularite (0-10) :
+Indicateur de qualite source (0-10, non affiche comme une note) :
   - POI avec site web      : +3 pts
   - POI avec telephone     : +2 pts
   - Categorie rare (< 5%)  : +2 pts  (valorise la diversite)
@@ -42,7 +42,9 @@ def get_engine():
 
 
 engine  = get_engine()
-API_KEY = os.getenv("DATATOURISME_API_KEY", "0f58925d-4b95-4ca2-b41b-9d7ea9527421")
+API_KEY = os.getenv("DATATOURISME_API_KEY", "")
+if not API_KEY:
+    raise RuntimeError("DATATOURISME_API_KEY doit etre defini dans l'environnement")
 URL_DT  = f"https://diffuseur.datatourisme.fr/webservice/b4c0271347c8681f390b852d8937d2e5/{API_KEY}"
 
 # Bounding box Pays de la Loire
@@ -330,8 +332,8 @@ print("\n  Repartition par categorie :")
 print(df_silver["categorie"].value_counts().to_string())
 
 
-# -- Calcul du score de popularite (0-10) --------------------------------------
-# Le score sert au modele KNN comme feature de qualite du POI.
+# -- Calcul d'un indicateur technique de qualite source (0-10) -----------------
+# Ce score n'est pas une note utilisateur et ne doit pas etre affiche comme tel.
 # Source des donnees : uniquement ce qu'on a dans DATAtourisme.
 
 print("\nCalcul du score de popularite...")
@@ -364,15 +366,17 @@ def calculer_score(row):
     return round(min(score, 10.0), 2)
 
 
-df_silver["note_moyenne"] = df_silver.apply(calculer_score, axis=1)
+df_silver["score_qualite_source"] = df_silver.apply(calculer_score, axis=1)
 
 # Normalisation 0-10
-score_max = df_silver["note_moyenne"].max()
+score_max = df_silver["score_qualite_source"].max()
 if score_max > 0:
-    df_silver["note_moyenne"] = (df_silver["note_moyenne"] / score_max * 10).round(2)
+    df_silver["score_qualite_source"] = (
+        df_silver["score_qualite_source"] / score_max * 10
+    ).round(2)
 
-print(f"  Score moyen : {df_silver['note_moyenne'].mean():.2f} / 10")
-print(f"  POI avec score > 0 : {(df_silver['note_moyenne'] > 0).sum()}")
+print(f"  Score technique moyen : {df_silver['score_qualite_source'].mean():.2f} / 10")
+print(f"  POI avec score > 0 : {(df_silver['score_qualite_source'] > 0).sum()}")
 
 
 # -- Etape 4 : Insertion Silver ------------------------------------------------
@@ -384,10 +388,10 @@ with engine.connect() as conn:
         conn.execute(text("""
             INSERT INTO silver.poi
               (nom, categorie, sous_categorie, commune, code_postal, departement,
-               latitude, longitude, telephone, site_web, note_moyenne,
+               latitude, longitude, telephone, site_web, note_moyenne, score_qualite_source,
                region, source, date_maj)
             VALUES (:nom, :cat, :scat, :com, :cp, :dep, :lat, :lon,
-                    :tel, :web, :note, :reg, :src, :dmaj)
+                    :tel, :web, NULL, :score_source, :reg, :src, :dmaj)
         """), {
             "nom" : row["nom"],
             "cat" : row["categorie"],
@@ -399,7 +403,7 @@ with engine.connect() as conn:
             "lon" : row["longitude"],
             "tel" : row["telephone"],
             "web" : row["site_web"],
-            "note": float(row["note_moyenne"]),
+            "score_source": float(row["score_qualite_source"]),
             "reg" : row["region"],
             "src" : row["source"],
             "dmaj": row["date_maj"],

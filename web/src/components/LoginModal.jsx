@@ -117,7 +117,7 @@ export default function LoginModal({ open, onClose }) {
                 name="password"
                 placeholder="••••••••"
                 required
-                minLength={6}
+                minLength={8}
                 className="mt-1.5 h-11 w-full rounded-xl border-[1.5px] border-line bg-card2 px-4 text-sm outline-none transition focus:border-violet focus:bg-card"
               />
             </div>

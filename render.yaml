@@ -1,0 +1,43 @@
+# Blueprint Render : deploie le front (React) + l'API (FastAPI) d'un seul coup.
+#
+# Utilisation :
+#   1. Cree un compte gratuit sur https://render.com (connecte ton GitHub).
+#   2. Dashboard Render -> New + -> Blueprint -> choisis le repo "wandrail".
+#   3. Render lit ce fichier et propose 2 services. Renseigne DATABASE_URL
+#      (ta chaine Supabase) quand il le demande, puis "Apply".
+#   4. Apres le 1er deploiement, verifie que les 2 URLs ci-dessous
+#      correspondent aux noms reels des services (sinon, ajuste-les).
+
+services:
+  # ── API FastAPI ────────────────────────────────────────────────
+  - type: web
+    name: wandrail-api
+    runtime: python
+    rootDir: api
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false        # a renseigner dans Render (chaine Supabase, sslmode=require)
+      - key: CORS_ORIGINS
+        value: https://wandrail-web.onrender.com
+      - key: AUTH_SECRET
+        generateValue: true
+
+  # ── Front React (site statique) ────────────────────────────────
+  - type: web
+    name: wandrail-web
+    runtime: static
+    rootDir: web
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE
+        value: https://wandrail-api.onrender.com
+    routes:
+      # Indispensable pour une SPA : toute URL renvoie index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

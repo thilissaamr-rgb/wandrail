@@ -19,6 +19,11 @@ def get_engine():
 
 engine = get_engine()
 
+if "--force" not in sys.argv:
+    print("ARRET : ce script supprime et recree les tables Bronze/Silver/Gold.")
+    print("Utilisez 'python scripts/00_init_db.py --force' uniquement pour un bootstrap explicite.")
+    sys.exit(2)
+
 print("=" * 60)
 print("INIT DB - Architecture Medallion Bronze/Silver/Gold")
 print("=" * 60)
@@ -129,6 +134,7 @@ CREATE TABLE silver.poi (
     telephone       VARCHAR(50),
     site_web        VARCHAR(500),
     note_moyenne    FLOAT,
+    score_qualite_source FLOAT,
     region          VARCHAR(100)  DEFAULT 'Pays de la Loire',
     source          VARCHAR(50)   DEFAULT 'datatourisme',
     date_maj        TIMESTAMP,
@@ -391,6 +397,17 @@ CREATE INDEX idx_fait_co2_transport ON gold.fait_co2(id_transport);
 CREATE INDEX idx_poi_enrichi_gare   ON silver.poi_enrichi(id_gare_1);
 CREATE INDEX idx_silver_poi_cat     ON silver.poi(categorie);
 CREATE INDEX idx_silver_gares_dep   ON silver.gares(code_departement);
+CREATE INDEX idx_silver_gares_name  ON silver.gares(nom_gare);
+CREATE INDEX idx_poi_enrichi_name_distance ON silver.poi_enrichi(nom_gare, distance_gare_km);
+CREATE INDEX idx_recommandations_profile_rank ON gold.recommandations(id_profil, rang);
+
+ALTER TABLE silver.poi ADD CONSTRAINT ck_silver_poi_rating
+    CHECK (note_moyenne IS NULL OR note_moyenne BETWEEN 0 AND 5);
+ALTER TABLE silver.poi ADD CONSTRAINT ck_silver_poi_coordinates
+    CHECK (
+        (latitude IS NULL OR latitude BETWEEN -90 AND 90)
+        AND (longitude IS NULL OR longitude BETWEEN -180 AND 180)
+    );
 """
 
 print("\nSuppression des anciennes tables...")

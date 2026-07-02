@@ -56,6 +56,16 @@ export default function DataDashboard() {
 
   const maxCat = Math.max(...dq.top_categories.map((c) => c.nb))
   const maxDep = Math.max(...dq.top_departements.map((d) => d.nb_gares))
+  const anomalyRows = [
+    ['Doublons gares', dq.anomalies.doublons_gares],
+    ['Doublons POI', dq.anomalies.doublons_poi],
+    ['Notes POI hors echelle 0-5', dq.anomalies.notes_poi_invalides],
+    ['Categories trop generiques (Autre)', dq.anomalies.categories_autre],
+    ['Coordonnees aberrantes', dq.anomalies.coordonnees_gares_aberrantes + dq.anomalies.coordonnees_poi_aberrantes],
+    ['Jointures invalides', dq.anomalies.jointures_invalides],
+    ['Destinations sans score', dq.anomalies.destinations_sans_score],
+    ['Recommandations invalides', dq.anomalies.recommandations_invalides],
+  ]
 
   return (
     <div className="mx-auto max-w-page px-6 py-10">
@@ -65,7 +75,7 @@ export default function DataDashboard() {
           <div className="mb-1 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-violet">
             Big Data &amp; IA - Architecture Medaillon
           </div>
-          <h1 className="text-3xl font-black tracking-tighter text-ink">Tableau de bord donnees</h1>
+          <h1 className="text-3xl font-black tracking-tighter text-ink">Tableau de bord des données</h1>
           <p className="mt-1 text-sm text-muted">
             Vue d'ensemble du pipeline SNCF Open Data + DATAtourisme + INSEE + OSM.
           </p>
@@ -82,7 +92,7 @@ export default function DataDashboard() {
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr]">
         <div className="rounded-2xl border border-line bg-card p-6 text-center shadow-card">
           <div className="text-xs font-bold uppercase tracking-wider text-muted">
-            Score qualite donnees
+            Score de qualité des données
           </div>
           <div className="relative mx-auto mt-4 h-40 w-40">
             <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
@@ -106,19 +116,17 @@ export default function DataDashboard() {
             </div>
           </div>
           <div className="mt-4 space-y-2 text-left">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted">Gares geolocalisees</span>
-              <span className="font-bold text-ink">{dq.completude.gares_geo_pct}%</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted">POI geolocalises</span>
-              <span className="font-bold text-ink">{dq.completude.poi_geo_pct}%</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted">Destinations analysees</span>
-              <span className="font-bold text-ink">{dq.completude.analyses_pct}%</span>
-            </div>
+            {Object.entries(dq.quality_dimensions).map(([key, value]) => (
+              <div key={key} className="flex justify-between text-xs">
+                <span className="capitalize text-muted">{key}</span>
+                <span className="font-bold text-ink">{value}%</span>
+              </div>
+            ))}
           </div>
+          <p className="mt-4 border-t border-line pt-3 text-left text-[0.68rem] leading-relaxed text-muted">
+            Score pondere : completude 25 %, validite 35 %, unicite 15 %, integrite 25 %.
+            Calcul en direct depuis PostgreSQL.
+          </p>
         </div>
 
         {/* KPI */}
@@ -129,24 +137,59 @@ export default function DataDashboard() {
             sub={`${dq.completude.gares_geo_pct}% geolocalisees`}
           />
           <Kpi
-            label="Points d'interet"
+            label="Points d'intérêt"
             value={fmt(dq.kpi.nb_poi)}
             sub={`${dq.completude.poi_geo_pct}% geolocalises`}
           />
           <Kpi
-            label="Destinations analysees"
+            label="Destinations analysées"
             value={fmt(dq.kpi.nb_dest_analysees)}
             sub="score d'attractivite calcule"
           />
           <Kpi label="Departements" value={fmt(dq.kpi.nb_departements)} sub="couverts" />
           <Kpi label="Profils voyageur" value={fmt(dq.kpi.nb_profils)} sub="modele KNN" />
           <Kpi
-            label="Categories POI"
-            value={fmt(dq.top_categories.length)}
-            sub="DATAtourisme"
+            label="Anomalies"
+            value={fmt(dq.anomalies_total)}
+            sub="controles qualite cumules"
           />
         </div>
       </div>
+
+      {/* Qualite detaillee */}
+      <section className="mt-10 rounded-2xl border border-line bg-card p-6 shadow-card">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-black tracking-tight text-ink">Controle qualite detaille</h2>
+            <p className="mt-1 text-xs text-muted">
+              Les indicateurs signalent les lignes a corriger ; ils ne sont pas masques par le score global.
+            </p>
+          </div>
+          <div className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+            {fmt(dq.nulls_total)} valeurs NULL critiques
+          </div>
+        </div>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {anomalyRows.map(([label, value]) => (
+            <div key={label} className="rounded-xl border border-line bg-card2 p-4">
+              <div className={`text-2xl font-black ${value ? 'text-amber-600' : 'text-emerald-600'}`}>
+                {fmt(value)}
+              </div>
+              <div className="mt-1 text-xs font-semibold text-muted">{label}</div>
+            </div>
+          ))}
+        </div>
+        <details className="mt-5 rounded-xl border border-line bg-card2 p-4 text-xs text-muted">
+          <summary className="cursor-pointer font-bold text-ink">Voir le detail des valeurs NULL</summary>
+          <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+            {Object.entries(dq.nulls).map(([key, value]) => (
+              <div key={key} className="flex justify-between gap-2 rounded-lg bg-card px-3 py-2">
+                <span>{key.replaceAll('_', ' ')}</span><strong className="text-ink">{fmt(value)}</strong>
+              </div>
+            ))}
+          </div>
+        </details>
+      </section>
 
       {/* Repartition */}
       <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -240,35 +283,25 @@ export default function DataDashboard() {
           Pipeline Medaillon : Bronze &rarr; Silver &rarr; Gold
         </h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {[
-            {
-              tier: 'BRONZE',
-              color: '#b45309',
-              titre: 'Donnees brutes',
-              desc: 'SNCF Open Data, DATAtourisme, INSEE, OpenStreetMap. Ingestion sans transformation.',
-            },
-            {
-              tier: 'SILVER',
-              color: '#64748b',
-              titre: 'Donnees nettoyees',
-              desc: `${fmt(dq.kpi.nb_gares)} gares + ${fmt(dq.kpi.nb_poi)} POI enrichis (distance gare, temps marche).`,
-            },
-            {
-              tier: 'GOLD',
-              color: '#ca8a04',
-              titre: 'Donnees business',
-              desc: `${fmt(dq.kpi.nb_dest_analysees)} destinations scorees + ${dq.kpi.nb_profils} profils + recommandations KNN.`,
-            },
-          ].map((s) => (
-            <div key={s.tier} className="rounded-xl border border-line bg-card2 p-5">
+          {dq.pipeline.map((s) => (
+            <div key={s.layer} className="rounded-xl border border-line bg-card2 p-5">
               <div
                 className="mb-3 inline-block rounded-full px-3 py-1 text-[0.65rem] font-black tracking-widest text-white"
-                style={{ background: s.color }}
+                style={{ background: { bronze: '#b45309', silver: '#64748b', gold: '#ca8a04' }[s.layer] }}
               >
-                {s.tier}
+                {s.layer.toUpperCase()}
               </div>
-              <div className="font-bold text-ink">{s.titre}</div>
-              <div className="mt-1 text-xs leading-relaxed text-muted">{s.desc}</div>
+              <div className="font-bold text-ink">{fmt(s.rows)} lignes suivies</div>
+              <div className="mt-1 text-xs leading-relaxed text-muted">
+                {s.tables.length} tables controlees - {s.empty_tables} table(s) vide(s)
+              </div>
+              <div className="mt-3 space-y-1 border-t border-line pt-3 text-[0.68rem] text-muted">
+                {s.tables.map((table) => (
+                  <div key={table.table_name} className="flex justify-between gap-3">
+                    <span>{table.table_name}</span><strong className="text-ink">{fmt(table.rows)}</strong>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
