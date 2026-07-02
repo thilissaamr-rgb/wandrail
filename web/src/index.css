@@ -4,19 +4,19 @@
 
 /* Tokens de theme : clair par defaut, sombre via .dark sur <html> */
 :root {
-  --bg: 255 255 255;
+  --bg: 247 249 251;
   --card: 255 255 255;
-  --card2: 245 245 245;
-  --text: 17 17 17;
-  --muted: 107 107 107;
-  --line: rgba(0, 0, 0, 0.09);
+  --card2: 233 245 242;   /* eco.soft */
+  --text: 13 27 42;       /* navy */
+  --muted: 82 100 122;
+  --line: rgba(13, 27, 42, 0.08);
 }
 .dark {
-  --bg: 11 17 32;
-  --card: 19 28 47;
-  --card2: 27 39 64;
-  --text: 232 237 247;
-  --muted: 148 163 189;
+  --bg: 13 27 42;         /* navy */
+  --card: 27 38 59;       /* navy.light */
+  --card2: 40 54 79;
+  --text: 233 245 242;    /* eco.soft */
+  --muted: 148 178 190;
   --line: rgba(255, 255, 255, 0.1);
 }
 

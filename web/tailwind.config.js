@@ -5,11 +5,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Palette Wandrail : violet SNCF Connect + neutres
+        // Palette Wandrail v2 : navy + vert eco (tourisme durable)
+        // Compat: on garde violet.* comme alias vers eco.* pour ne rien casser
+        eco: {
+          DEFAULT: '#2A9D8F',
+          dark: '#1B263B',
+          light: '#52B788',
+          soft: '#E9F5F2',
+        },
+        navy: {
+          DEFAULT: '#0D1B2A',
+          light: '#1B263B',
+        },
+        accent: '#E76F51',
+        // Alias : les classes bg-violet, text-violet, etc. utilisent la nouvelle palette
         violet: {
-          DEFAULT: '#7c3aed',
-          dark: '#4c1d95',
-          light: '#c4b5fd',
+          DEFAULT: '#2A9D8F',
+          dark: '#1B263B',
+          light: '#52B788',
         },
         // Tokens semantiques pilotes par des variables CSS (voir index.css).
         // Basculent automatiquement en mode sombre.
@@ -19,6 +32,10 @@ export default {
         ink: 'rgb(var(--text) / <alpha-value>)',
         muted: 'rgb(var(--muted) / <alpha-value>)',
         line: 'var(--line)',
+      },
+      fontFamily: {
+        sans: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Poppins', 'Inter', 'sans-serif'],
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],

@@ -8,17 +8,27 @@ export default function Footer() {
         <Logo textClass="text-3xl" />
       </div>
       <p className="mx-auto mt-4 max-w-md text-sm italic text-muted">
-        Laissez une escale devenir une aventure.
+        Le tourisme en train, autrement.
       </p>
-      <div className="mt-6 flex justify-center gap-7 text-sm font-medium text-muted">
-        <Link to="/" className="hover:text-violet">
-          Accueil
-        </Link>
-        <Link to="/destinations" className="hover:text-violet">
-          Destinations
-        </Link>
+      <div className="mt-6 flex flex-wrap justify-center gap-x-7 gap-y-2 text-sm font-medium text-muted">
+        <Link to="/" className="hover:text-eco">Accueil</Link>
+        <Link to="/destinations" className="hover:text-eco">Destinations</Link>
+        <Link to="/carte" className="hover:text-eco">Carte</Link>
+        <Link to="/data-dashboard" className="hover:text-eco">Espace Analyste</Link>
+        <Link to="/methodologie" className="hover:text-eco">Methodologie</Link>
       </div>
-      <p className="mt-8 text-xs text-muted/70">© 2026 Wandrail - Tous droits reserves</p>
+      <div className="mt-8 flex flex-wrap justify-center gap-5 text-[0.7rem] font-medium text-muted/80">
+        <span>Durable</span>
+        <span>·</span>
+        <span>Accessible</span>
+        <span>·</span>
+        <span>Local</span>
+        <span>·</span>
+        <span>Authentique</span>
+        <span>·</span>
+        <span>Responsable</span>
+      </div>
+      <p className="mt-6 text-xs text-muted/70">© 2026 Wandrail — Tous droits réservés</p>
     </footer>
   )
 }

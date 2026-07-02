@@ -44,66 +44,112 @@ export default function Home() {
 
   return (
     <div>
-      {/* HERO */}
-      <section className="relative overflow-hidden border-b border-line">
-        <img
-          src={HERO_IMAGE}
-          alt="Train dans les Pays de la Loire"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/55 to-black/75" />
-
-        <div className="relative z-10 px-6 py-24 text-center">
-          <div className="mx-auto max-w-2xl">
-            <div className="mb-6 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-white/75">
-              Pays de la Loire - Tourisme en train
+      {/* HERO v2 : texte a gauche + image train a droite (style maquette) */}
+      <section className="border-b border-line bg-card">
+        <div className="mx-auto grid max-w-page grid-cols-1 gap-10 px-6 py-16 md:grid-cols-[1.1fr_1fr] md:items-center">
+          {/* Colonne gauche : texte + recherche */}
+          <div>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-eco-soft px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-eco-dark">
+              <span className="h-1.5 w-1.5 rounded-full bg-eco" />
+              Plateforme data & IA
             </div>
-            <h1 className="mb-6 text-5xl font-black leading-[1.05] tracking-tighter text-white drop-shadow-lg md:text-6xl">
-              Où voulez-vous
+            <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-ink md:text-6xl">
+              Le tourisme en train,
               <br />
-              aller <span className="text-violet-light">en train ?</span>
+              <span className="text-eco">autrement.</span>
             </h1>
-            <p className="mb-9 text-base leading-relaxed text-white/85 drop-shadow">
-              Découvrez les Pays de la Loire à travers ses gares, ses paysages et ses lieux uniques.
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-muted">
+              Découvrez des destinations accessibles en train, plus durables et moins connues.
             </p>
 
-            {/* Barre de recherche + filtres */}
-            <div className="mx-auto flex max-w-2xl flex-col gap-2 rounded-2xl border border-white/10 bg-card p-2 shadow-[0_8px_32px_rgba(0,0,0,0.25)] sm:flex-row sm:items-center">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && search()}
-                placeholder="Une ville : Nantes, Le Mans, Saumur..."
-                className="h-12 flex-1 rounded-xl bg-transparent px-4 text-sm text-ink outline-none placeholder:text-muted"
-              />
-              <div className="hidden h-7 w-px bg-line sm:block" />
-              <select
-                value={dep}
-                onChange={(e) => setDep(e.target.value)}
-                className="h-12 rounded-xl bg-transparent px-3 text-sm text-ink outline-none"
-              >
-                <option value="">Tous les départements</option>
-                {deps.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+            {/* Barre de recherche */}
+            <div className="mt-8 flex max-w-xl flex-col gap-2 rounded-2xl border border-line bg-card p-2 shadow-lg sm:flex-row sm:items-center">
+              <div className="flex flex-1 items-center gap-2 px-3">
+                <svg viewBox="0 0 24 24" className="h-5 w-5 flex-shrink-0 text-muted" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && search()}
+                  placeholder="Où souhaitez-vous partir ?"
+                  className="h-11 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+                />
+              </div>
               <button
                 onClick={search}
-                className="h-12 rounded-xl bg-violet px-7 text-sm font-semibold text-white transition hover:bg-violet-dark"
+                className="h-11 rounded-xl bg-eco px-7 text-sm font-semibold text-white transition hover:bg-eco-dark"
               >
                 Rechercher
               </button>
             </div>
 
-            {/* Chiffres cles, en discret */}
+            {/* Stats horizontales */}
             {stats && (
-              <p className="mt-6 text-sm font-medium text-white/75">
-                {stats.nb_gares} gares &nbsp;·&nbsp; {stats.nb_lieux?.toLocaleString('fr-FR')} lieux
-                &nbsp;·&nbsp; -{stats.co2_vs_voiture_pct}% CO2 vs voiture
-              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-eco-soft text-eco">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <path d="M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div className="text-lg font-black text-ink">+{stats.nb_lieux?.toLocaleString('fr-FR')}</div>
+                    <div className="text-xs text-muted">Destinations</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-eco-soft text-eco">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                      <rect x="4" y="4" width="16" height="13" rx="3" />
+                      <path d="M4 11h16M8.5 20l-1.5 2M15.5 20l1.5 2" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div className="text-lg font-black text-ink">+{stats.nb_gares}</div>
+                    <div className="text-xs text-muted">Gares connectées</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-eco-soft text-eco">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                      <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <div className="text-lg font-black text-eco">-{stats.co2_vs_voiture_pct}%</div>
+                    <div className="text-xs text-muted">CO₂ vs voiture</div>
+                  </div>
+                </div>
+              </div>
             )}
+          </div>
+
+          {/* Colonne droite : image du hero + carte impact flottante */}
+          <div className="relative hidden md:block">
+            <div className="relative overflow-hidden rounded-3xl shadow-2xl">
+              <img
+                src={HERO_IMAGE}
+                alt="Train dans les paysages français"
+                className="h-[420px] w-full object-cover"
+              />
+            </div>
+            {/* Carte flottante : impact CO2 */}
+            <div className="absolute -bottom-6 -left-6 rounded-2xl border border-line bg-card p-5 shadow-xl">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-eco-soft text-eco">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z" />
+                  </svg>
+                </span>
+                <div>
+                  <div className="text-[0.62rem] font-bold uppercase tracking-wide text-muted">Impact CO₂ évité</div>
+                  <div className="text-2xl font-black tracking-tight text-ink">2,4 t</div>
+                  <div className="text-[0.65rem] text-muted">économisées cette semaine par la communauté</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
