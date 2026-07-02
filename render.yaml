@@ -30,7 +30,7 @@ services:
     name: wandrail-web
     runtime: static
     rootDir: web
-    plan: free
+    # (les sites statiques sont gratuits par defaut, pas de champ "plan")
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
