@@ -7,22 +7,23 @@ export default {
       colors: {
         // Palette Wandrail v2 : navy + vert eco (tourisme durable)
         // Compat: on garde violet.* comme alias vers eco.* pour ne rien casser
+        // Palette SNCF Connect : vert institutionnel + bleu accent
         eco: {
-          DEFAULT: '#2A9D8F',
-          dark: '#1B263B',
-          light: '#52B788',
-          soft: '#E9F5F2',
+          DEFAULT: '#0A5C36',
+          dark: '#064023',
+          light: '#22C55E',
+          soft: '#ECFDF5',
         },
         navy: {
-          DEFAULT: '#0D1B2A',
-          light: '#1B263B',
+          DEFAULT: '#1C1C1C',
+          light: '#374151',
         },
-        accent: '#E76F51',
-        // Alias : les classes bg-violet, text-violet, etc. utilisent la nouvelle palette
+        accent: '#1F6FEB',
+        // Alias : classes bg-violet/text-violet utilisent le vert SNCF
         violet: {
-          DEFAULT: '#2A9D8F',
-          dark: '#1B263B',
-          light: '#52B788',
+          DEFAULT: '#0A5C36',
+          dark: '#064023',
+          light: '#22C55E',
         },
         // Tokens semantiques pilotes par des variables CSS (voir index.css).
         // Basculent automatiquement en mode sombre.
@@ -34,8 +35,8 @@ export default {
         line: 'var(--line)',
       },
       fontFamily: {
-        sans: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],
-        display: ['Poppins', 'Inter', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
       },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
