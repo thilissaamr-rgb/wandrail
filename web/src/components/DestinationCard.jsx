@@ -2,15 +2,16 @@ import { Link } from 'react-router-dom'
 import { destImage } from '../lib/images'
 import { usePlaceImage } from '../lib/usePlaceImage'
 import { useAuth } from '../lib/auth.jsx'
+import { ecoScore, ecoColor } from '../lib/eco'
 
 const cap = (s) => String(s || '').replace(/\b\w/g, (c) => c.toUpperCase())
 
 export default function DestinationCard({ dest }) {
   const ville = cap(dest.commune || dest.nom_gare)
-  const score = dest.score_attractivite != null ? Number(dest.score_attractivite) : null
   const img = usePlaceImage(dest.commune || dest.nom_gare, destImage(dest.commune || dest.nom_gare))
   const { user, isFavorite, toggleFavorite } = useAuth()
   const fav = isFavorite(dest.nom_gare)
+  const eco = ecoScore(dest)
 
   return (
     <Link
@@ -49,11 +50,16 @@ export default function DestinationCard({ dest }) {
           </button>
         )}
 
-        {score != null && (
-          <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-neutral-900 shadow-sm backdrop-blur">
-            {score.toFixed(1)}
-          </span>
-        )}
+        <span
+          className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold shadow-sm backdrop-blur"
+          style={{ color: ecoColor(eco.score) }}
+          title="EcoScore : CO2 evite (45%) + attractivite (30%) + activites (25%)"
+        >
+          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
+            <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z" />
+          </svg>
+          {eco.score}
+        </span>
 
         <div className="absolute bottom-4 left-5 right-5">
           <div className="text-[1.1rem] font-extrabold tracking-tight text-white drop-shadow">

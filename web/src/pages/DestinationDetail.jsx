@@ -15,6 +15,7 @@ import { destImage, poiImage } from '../lib/images'
 import { usePlaceImage } from '../lib/usePlaceImage'
 import { useTheme } from '../lib/theme.jsx'
 import { generateTicket } from '../lib/ticket'
+import { ecoScore, ecoColor, ecoLabel } from '../lib/eco'
 
 // Gare de reference (hub regional) pour la comparaison train / voiture.
 const HUB = { nom: 'Nantes', lat: 47.218371, lon: -1.541362 }
@@ -242,6 +243,7 @@ export default function DestinationDetail() {
   const trainCost = distAR * 0.13 // EUR (estimation billet TER)
   const fmtTime = (m) => (m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m} min`)
   const showCompare = distKm >= 2
+  const eco = ecoScore(d)
 
   // Carte d'un lieu (reutilisee dans les groupes par centre d'interet).
   const renderCard = (p, key) => {
@@ -376,6 +378,62 @@ export default function DestinationDetail() {
             </svg>
             {ticketBusy ? 'Generation...' : 'Telecharger le billet (PDF)'}
           </button>
+        </div>
+
+        {/* EcoScore : indice composite explicable (Data Science) */}
+        <div className="mt-10 rounded-2xl border border-line bg-card p-6 shadow-card">
+          <div className="flex flex-wrap items-center gap-6">
+            {/* Jauge circulaire */}
+            <div className="relative h-28 w-28 flex-shrink-0">
+              <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--line)" strokeWidth="10" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  fill="none"
+                  stroke={ecoColor(eco.score)}
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray={`${(eco.score / 100) * 264} 264`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-black tracking-tighter text-ink">{eco.score}</span>
+                <span className="text-[0.6rem] font-semibold text-muted">/ 100</span>
+              </div>
+            </div>
+
+            <div className="min-w-[200px] flex-1">
+              <h2 className="text-xl font-black tracking-tighter text-ink">
+                EcoScore : <span style={{ color: ecoColor(eco.score) }}>{ecoLabel(eco.score)}</span>
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                Indice composite calcule a partir du CO2 evite en train (45%), de
+                l'attractivite touristique (30%) et de la richesse en activites (25%).
+              </p>
+            </div>
+
+            {/* Decomposition */}
+            <div className="w-full space-y-2.5 sm:w-72">
+              {eco.components.map((c) => (
+                <div key={c.key}>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="font-semibold text-ink">
+                      {c.key} <span className="font-normal text-muted">({c.weight}%)</span>
+                    </span>
+                    <span className="font-bold text-muted">{c.detail}</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-card2">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${Math.round(c.value * 100)}%`, background: ecoColor(eco.score) }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Comparaison Train vs Voiture */}
