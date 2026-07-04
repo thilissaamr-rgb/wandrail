@@ -124,7 +124,7 @@ export default function DataDashboard() {
             ))}
           </div>
           <p className="mt-4 border-t border-line pt-3 text-left text-[0.68rem] leading-relaxed text-muted">
-            Score pondere : completude 25 %, validite 35 %, unicite 15 %, integrite 25 %.
+            Score pondéré : complétude 25 %, validité 35 %, unicité 15 %, intégrité 25 %.
             Calcul en direct depuis PostgreSQL.
           </p>
         </div>

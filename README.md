@@ -1,197 +1,159 @@
-# Wandrail — Découvre la France en train
+# Wandrail - tourisme en train et intelligence territoriale
 
-Projet d'études M1 Big Data & IA — Sup de Vinci  
-Diplôme : **RNCP40167** — Expert en ingénierie de données massives et IA (Niveau 7)  
-Partenaire : **Fondation SNCF** / Open Data University — Saison 3  
-Version actuelle : **Pays de la Loire** · Roadmap : France entière
+Wandrail est une plateforme Big Data & IA conçue dans le cadre du Master 1 Big Data & IA de Sup de Vinci, autour du défi Fondation SNCF : **comment faciliter et encourager le tourisme en train en France ?**
 
----
+La version actuelle couvre les **Pays de la Loire** et propose deux parcours dans une seule application :
 
-## Problématique
+- **Espace Voyageur** : découverte, carte, recommandations, EcoScore, comparaison CO₂ et favoris ;
+- **Espace Analyste** : qualité des données, pipeline Médaillon, modèles IA et aide à la décision SNCF/territoires.
 
-> Comment faciliter et encourager le tourisme en train en France ?
+## Résultats actuels
 
-En France, le secteur du tourisme a émis 97 millions de tonnes de CO₂ en 2022. Un trajet de 500 km en train émet **10 fois moins de CO₂** qu'en voiture. Ce projet construit un système data complet pour aider les voyageurs à découvrir les destinations touristiques accessibles depuis les gares des Pays de la Loire.
+- 136 gares SNCF analysées ;
+- 26 099 points d'intérêt DATAtourisme et OpenStreetMap ;
+- 5 profils voyageurs et 25 recommandations expliquées ;
+- qualité globale : 98,6/100 selon quatre dimensions explicites ;
+- KMeans : 15 clusters, silhouette 0,4342 ;
+- KNN : stabilité@5 entre 0,92 et 1,00 ;
+- Precision@5 et Recall@5 non disponibles faute de vérité terrain utilisateur.
 
----
+Ces chiffres proviennent de la base locale auditée le 3 juillet 2026. Les limites sont documentées dans [l'audit complet](docs/audit_complet_2026-07-02.md).
 
-## Architecture globale
+## Architecture
 
-```
-Sources open data (SNCF, DATAtourisme, OSM, INSEE)
-        │
-        ▼
-┌─────────────────────────────────────────┐
-│         PIPELINE ETL (Apache Airflow)   │
-│                                         │
-│  BRONZE        SILVER         GOLD      │
-│  (brut)  ───► (nettoyé) ───► (agrégé)  │
-│                                         │
-│     PostgreSQL — port 5434              │
-│     DB : tourisme_train                 │
-└─────────────────────────────────────────┘
-        │                    │
-        ▼                    ▼
-  Modèles ML             API REST
-  (KMeans + KNN)         (FastAPI)
-  stockés en .pkl        port 8000
-        │                    │
-        ▼                    ▼
-  MLflow tracking        Interface Web
-                         (React + Vite)
-                         port 5173
+```text
+SNCF + DATAtourisme + OSM + INSEE
+                 |
+                 v
+Bronze -> Silver -> Gold -> ML -> FastAPI -> React
+ brut     nettoyé   métier   IA      JSON      UX
 ```
 
----
+| Couche | Rôle | Tables principales |
+|---|---|---|
+| Bronze | Conservation des extractions brutes | `gares_raw`, `poi_raw`, `mobilites_raw` |
+| Silver | Nettoyage, typage et enrichissement géographique | `gares`, `poi`, `poi_enrichi`, `mobilites` |
+| Gold | Agrégats, scoring, dimensions et recommandations | `dim_gare`, `dim_poi`, `poi_clusters`, `recommandations` |
+| API | Contrats JSON, filtres, sécurité | FastAPI + SQLAlchemy |
+| Web | Parcours Voyageur et Analyste | React + Vite + Tailwind |
 
-## Structure du projet
+## Routes frontend
 
-```
-tourisme_train/
-├── api/                 # API REST FastAPI (port 8000)
-├── web/                 # Interface Web React (port 5173)
-├── scripts/
-│   ├── 00_init_db.py    # Création des schémas Bronze/Silver/Gold
-│   ├── 01_gares.py      # Ingestion gares SNCF (SNCF Open Data)
-│   ├── 02_datatourisme.py   # POI DATAtourisme PDL
-│   ├── 03_mobilites.py  # Mobilités locales (vélos, bus)
-│   ├── 04_enrichissement.py # Calcul distances gare↔POI (Silver)
-│   ├── 05_gold_layer.py # Construction schéma en étoile (Gold)
-│   ├── 06_ml_clustering.py  # KMeans — clustering des POI
-│   └── 07_ml_recommandation.py # KNN — recommandations par profil
-├── airflow/
-│   └── dags/
-│       └── tourisme_dag.py  # DAG Airflow (orchestration hebdo)
-├── models/
-│   ├── kmeans_poi.pkl       # Modèle KMeans entraîné
-│   └── knn_recommandation.pkl # Modèle KNN entraîné
-├── notebooks/               # Analyses exploratoires + évaluation ML
-├── data/
-│   └── raw/
-│       └── liste-des-gares.csv
-├── docs/
-│   └── audit_donnees.md     # Rapport qualité des données
-├── docker-compose.yml       # PostgreSQL + Airflow + Grafana
-├── requirements.txt
-├── .env.example             # Variables d'environnement (template)
-└── README.md
-```
+### Voyageur
 
----
+- `/` - proposition de valeur et sélection ;
+- `/destinations` - recherche, filtres et recommandations ;
+- `/destinations/:nom` - fiche destination, POI, carte et CO₂ ;
+- `/carte` - carte des gares ;
+- `/favoris` - destinations enregistrées.
 
-## Base de données — Architecture Médaillon
+### Analyste
 
-| Schéma | Rôle | Tables principales |
-|--------|------|--------------------|
-| **bronze** | Données brutes, jamais modifiées | `gares_raw`, `poi_raw`, `mobilites_raw` |
-| **silver** | Données nettoyées et structurées | `gares`, `poi`, `poi_enrichi` |
-| **gold** | Schéma en étoile pour analyse | `dim_gare`, `dim_poi`, `dim_profil`, `recommandations`, `poi_clusters` |
-| **userapp** | Données applicatives | `users`, `user_favorites` |
+- `/analyste` - vue d'ensemble ;
+- `/analyste/data-quality` - rapport qualité ;
+- `/analyste/pipeline` - Bronze → Silver → Gold → ML → API → Frontend ;
+- `/analyste/ml` - KMeans, KNN et métriques ;
+- `/analyste/decision` - potentiel territorial et scénario carbone ;
+- `/data-dashboard` - ancienne route conservée ;
+- `/methodologie` - méthodologie complète.
 
----
+## Endpoints principaux
 
-## Modèles ML
+- `GET /api/stats`
+- `GET /api/data-quality`
+- `GET /api/anomalies`
+- `GET /api/pipeline`
+- `GET /api/ml-metrics`
+- `GET /api/analyste/overview`
+- `GET /api/analyste/decision`
+- `GET /api/top-destinations`
+- `GET /api/destinations`
+- `GET /api/recommandations/{profil}`
 
-### KMeans — Clustering des POI (`06_ml_clustering.py`)
-- **Objectif** : regrouper les 14 979 points d'intérêt en clusters thématiques
-- **Features** : latitude, longitude, catégorie (encodée), score popularité
-- **Métriques** : Silhouette Score, méthode Elbow → voir `notebooks/evaluation_kmeans.ipynb`
+La documentation OpenAPI est disponible sur `/docs` lorsque l'API fonctionne.
 
-### KNN — Recommandations (`07_ml_recommandation.py`)
-- **Objectif** : recommander les 5 meilleures destinations pour chaque profil voyageur
-- **5 profils** : Famille, Couple, Solo Aventurier, Senior, Groupe Amis
-- **Métriques** : Precision@5, Recall@5 → voir `notebooks/evaluation_knn.ipynb`
-
----
-
-## Installation
+## Installation locale
 
 ### Prérequis
+
 - Python 3.10+
-- Node.js 18+ & npm
-- Docker Desktop (pour PostgreSQL + Airflow)
+- Node.js 18+
+- PostgreSQL 16 ou Docker Desktop
 
-### Démarrage rapide
-
-#### 1. Ingestion & Base de données
+### Configuration
 
 ```bash
-# 1. Cloner le projet
-git clone <url-repo>
-cd tourisme_train
-
-# 2. Copier les variables d'environnement globales
 cp .env.example .env
-# Éditer .env avec tes valeurs locales
+```
 
-# 3. Installer les dépendances Python du projet
-pip install -r requirements.txt
+Renseigner au minimum les accès PostgreSQL. Les secrets et clés API ne doivent jamais être commités.
 
-# 4. Lancer les services (PostgreSQL, Airflow, Grafana)
-docker-compose up -d
+### Base et pipeline
 
-# 5. Initialiser la base de données
-python scripts/00_init_db.py --force
-
-# 6. Lancer le pipeline ETL complet & ML
+```bash
+docker compose up -d
+python scripts/00_init_db.py --force   # bootstrap destructif, une seule fois
 python scripts/01_gares.py
 python scripts/02_datatourisme.py
+python scripts/03_osm.py
 python scripts/04_enrichissement.py
 python scripts/05_gold_layer.py
 python scripts/06_ml_clustering.py
 python scripts/07_ml_recommandation.py
+python scripts/11_data_quality_migration.py
 ```
 
-#### 2. Lancer l'API FastAPI
+### API
 
 ```bash
 cd api
 python -m venv .venv
-.venv\Scripts\activate        # Sur Windows
-# source .venv/bin/activate   # Sur macOS/Linux
+.venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env         # Renseigner DATABASE_URL dans le .env créé
 uvicorn main:app --reload --port 8000
 ```
-L'API sera disponible sur : http://localhost:8000
-Documentation interactive : http://localhost:8000/docs
 
-#### 3. Lancer l'interface Web (React)
+### Frontend
 
 ```bash
 cd web
 npm install
 npm run dev
 ```
-L'application web sera disponible sur : http://localhost:5173
 
----
+Application : `http://localhost:5173`
 
-## Données utilisées
+API : `http://localhost:8000`
 
-| Source | Type | Volume (PDL) |
-|--------|------|-------------|
-| SNCF Open Data | Gares, fréquentation | 254 gares |
-| DATAtourisme | Points d'intérêt | 14 979 POI |
-| OSM / Overpass | Mobilités locales | En cours |
-| INSEE | Population communes | En cours |
+## Tests de livraison
 
----
+```bash
+python -m compileall -q api scripts airflow/dags
+cd web
+npm run build
+```
 
-## Éco-impact
+La recette doit couvrir les routes Voyageur, les cinq routes Analyste, la compatibilité `/data-dashboard`, les erreurs API et le responsive mobile.
 
-Le calcul CO₂ compare le train aux autres modes de transport sur la base des données ADEME :
+## Déploiement Render
 
-| Mode | CO₂ g/km/passager |
-|------|-------------------|
-| Train TER | 23 |
-| Voiture (seul) | 193 |
-| Avion | 258 |
-| Bus | 103 |
+Le fichier `render.yaml` décrit le frontend statique et l'API. Configurer dans Render :
 
----
+- `DATABASE_URL`
+- `AUTH_SECRET`
+- `CORS_ORIGINS`
+- `VITE_API_BASE`
 
-## Auteur
+Une recette sur la base de production reste indispensable après déploiement.
 
-**Thilissa Amara** — M1 Big Data & IA, Sup de Vinci  
-Promotion 2025-2026
+## Documentation soutenance
+
+- [Audit complet](docs/audit_complet_2026-07-02.md)
+- [Audit des données](docs/audit_donnees.md)
+- [Scénario de démonstration 5 minutes](docs/demo_jury.md)
+- [Métriques KMeans](docs/metriques_kmeans.json)
+- [Métriques KNN](docs/metriques_knn.json)
+
+## Positionnement honnête
+
+Wandrail est un prototype régional professionnel. Il démontre une chaîne complète données → qualité → features → modèles → API → interface. Il ne prétend pas encore fournir un calculateur national temps réel ni un système de recommandation validé sur des comportements utilisateurs.

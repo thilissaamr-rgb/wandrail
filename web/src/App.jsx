@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
@@ -12,6 +12,11 @@ const Favoris = lazy(() => import('./pages/Favoris'))
 const DataDashboard = lazy(() => import('./pages/DataDashboard'))
 const Methodologie = lazy(() => import('./pages/Methodologie'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const AnalystLayout = lazy(() => import('./components/AnalystLayout'))
+const AnalystOverview = lazy(() => import('./pages/analyste/Overview'))
+const AnalystPipeline = lazy(() => import('./pages/analyste/Pipeline'))
+const AnalystML = lazy(() => import('./pages/analyste/ML'))
+const AnalystDecision = lazy(() => import('./pages/analyste/Decision'))
 
 export default function App() {
   const location = useLocation()
@@ -31,6 +36,14 @@ export default function App() {
               <Route path="/favoris" element={<Favoris />} />
               <Route path="/data-dashboard" element={<DataDashboard />} />
               <Route path="/methodologie" element={<Methodologie />} />
+              <Route path="/analyste" element={<AnalystLayout />}>
+                <Route index element={<AnalystOverview />} />
+                <Route path="dashboard" element={<Navigate to="/analyste" replace />} />
+                <Route path="data-quality" element={<DataDashboard />} />
+                <Route path="pipeline" element={<AnalystPipeline />} />
+                <Route path="ml" element={<AnalystML />} />
+                <Route path="decision" element={<AnalystDecision />} />
+              </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

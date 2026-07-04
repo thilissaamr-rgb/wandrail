@@ -1,7 +1,9 @@
 # Audit complet Wandrail
 
-**Date :** 2 juillet 2026  
-**Périmètre :** `api/`, `web/`, `scripts/`, `models/`, DAG Airflow et base PostgreSQL locale  
+**Date :** 3 juillet 2026
+
+**Périmètre :** `api/`, `web/`, `scripts/`, `models/`, DAG Airflow et base PostgreSQL locale
+
 **Référence :** cahier des charges Fondation SNCF - projet M1 Big Data & IA
 
 ## 1. Synthèse exécutive
@@ -134,3 +136,9 @@ Ce score élevé ne masque pas les anomalies : elles sont affichées séparémen
 ## 7. Conclusion
 
 Le projet est désormais présentable comme un **prototype régional professionnel et honnête sur ses limites**. Il ne faut pas le vendre comme un moteur national ni comme un système de recommandation validé par des utilisateurs. Sa valeur pour la soutenance réside dans la chaîne complète et traçable données -> qualité -> features -> modèles -> API -> interface, ainsi que dans la capacité à expliquer précisément ce qui est mesuré, ce qui ne l'est pas encore, et pourquoi.
+
+## 8. Extension finale : Espace Analyste
+
+La plateforme propose désormais deux parcours dans la même application. Les nouvelles routes `/analyste`, `/analyste/data-quality`, `/analyste/pipeline`, `/analyste/ml` et `/analyste/decision` regroupent la vue d'ensemble, la qualité, le pipeline, les modèles et la décision territoriale. La route historique `/data-dashboard` reste compatible.
+
+Les vues sont alimentées par les nouveaux endpoints `/api/analyste/overview`, `/api/anomalies`, `/api/pipeline`, `/api/ml-metrics`, `/api/analyste/decision` et `/api/top-destinations`. Les indicateurs de potentiel et de carbone incluent leur définition afin d'éviter toute interprétation causale ou promesse d'impact observé.

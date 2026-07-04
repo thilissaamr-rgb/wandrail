@@ -15,8 +15,9 @@ export default function Navbar() {
     { to: '/', label: 'Accueil', end: true },
     { to: '/destinations', label: 'Destinations' },
     { to: '/carte', label: 'Carte' },
-    { to: '/data-dashboard', label: 'Espace Analyste' },
-    ...(user ? [{ to: '/favoris', label: 'Favoris' }] : []),
+    { to: '/favoris', label: 'Favoris' },
+    { to: '/analyste', label: 'Espace Analyste' },
+    { to: '/methodologie', label: 'Méthodologie' },
   ]
 
   const linkClass = ({ isActive }) =>

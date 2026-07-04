@@ -40,6 +40,12 @@ async function send(method, path, body) {
 export const api = {
   stats: () => get('/api/stats'),
   dataQuality: () => get('/api/data-quality'),
+  anomalies: () => get('/api/anomalies'),
+  pipeline: () => get('/api/pipeline'),
+  mlMetrics: () => get('/api/ml-metrics'),
+  analystOverview: () => get('/api/analyste/overview'),
+  analystDecision: () => get('/api/analyste/decision'),
+  topDestinations: (limit = 10) => get(`/api/top-destinations?limit=${limit}`),
   departements: () => get('/api/departements'),
   profils: () => get('/api/profils'),
   destinations: (params = {}) => {

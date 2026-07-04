@@ -96,7 +96,7 @@ export default function Home() {
                   </span>
                   <div>
                     <div className="text-lg font-black text-ink">+{stats.nb_lieux?.toLocaleString('fr-FR')}</div>
-                    <div className="text-xs text-muted">Destinations</div>
+                    <div className="text-xs text-muted">Points d’intérêt</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5">
@@ -144,9 +144,9 @@ export default function Home() {
                   </svg>
                 </span>
                 <div>
-                  <div className="text-[0.62rem] font-bold uppercase tracking-wide text-muted">Impact CO₂ évité</div>
-                  <div className="text-2xl font-black tracking-tight text-ink">2,4 t</div>
-                  <div className="text-[0.65rem] text-muted">économisées cette semaine par la communauté</div>
+                  <div className="text-[0.62rem] font-bold uppercase tracking-wide text-muted">Comparaison CO₂</div>
+                  <div className="text-2xl font-black tracking-tight text-ink">-{stats?.co2_vs_voiture_pct || 91}%</div>
+                  <div className="text-[0.65rem] text-muted">estimation train vs voiture</div>
                 </div>
               </div>
             </div>
