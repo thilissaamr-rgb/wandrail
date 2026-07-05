@@ -4,25 +4,28 @@
 
 /* Tokens de theme : clair par defaut, sombre via .dark sur <html> */
 :root {
-  --bg: 247 249 251;
+  /* Palette pro type Rome2Rio / Doctolib : blanc pur, gris subtils, texte noir */
+  --bg: 255 255 255;
   --card: 255 255 255;
-  --card2: 233 245 242;   /* eco.soft */
-  --text: 13 27 42;       /* navy */
-  --muted: 82 100 122;
-  --line: rgba(13, 27, 42, 0.08);
+  --card2: 248 249 250;   /* #F8F9FA gris tres subtil pour separer sans salir */
+  --text: 17 24 39;       /* gris tres fonce plutot que noir pur (lecture) */
+  --muted: 107 114 128;   /* gris moyen pour secondaire */
+  --line: rgba(17, 24, 39, 0.08);
 }
 .dark {
-  --bg: 13 27 42;         /* navy */
-  --card: 27 38 59;       /* navy.light */
-  --card2: 40 54 79;
-  --text: 233 245 242;    /* eco.soft */
-  --muted: 148 178 190;
-  --line: rgba(255, 255, 255, 0.1);
+  --bg: 15 17 21;
+  --card: 22 25 32;
+  --card2: 32 36 44;
+  --text: 240 243 247;
+  --muted: 156 163 175;
+  --line: rgba(255, 255, 255, 0.10);
 }
 
 @layer base {
   html {
+    @apply bg-bg;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease;
   }
   body {
     @apply bg-bg text-ink font-sans;
@@ -61,3 +64,59 @@
 .animate-pagefade {
   animation: pagefade 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+.wandrail-map-icon {
+  background: transparent;
+  border: 0;
+}
+.wandrail-station-marker {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 3px solid white;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--marker);
+  box-shadow: 0 7px 20px rgba(0, 0, 0, .28);
+  color: white;
+  font-size: 18px;
+  transform: rotate(-45deg);
+}
+.wandrail-station-marker svg { transform: rotate(45deg); }
+.wandrail-cluster-marker {
+  display: flex;
+  width: 58px;
+  height: 58px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid rgba(255,255,255,.95);
+  border-radius: 50%;
+  background: var(--marker);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--marker) 18%, transparent), 0 8px 24px rgba(0,0,0,.22);
+  color: white;
+  line-height: 1;
+}
+.wandrail-cluster-marker span { font-size: 15px; font-weight: 900; }
+.wandrail-cluster-marker small { margin-top: 3px; font-size: 8px; font-weight: 700; opacity: .82; }
+.wandrail-me-marker {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(31,111,235,.18);
+}
+.wandrail-me-marker span { width: 14px; height: 14px; border: 3px solid white; border-radius: 50%; background: #1f6feb; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.wandrail-poi-marker {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 50% 50% 50% 5px;
+  background: #101a15;
+  box-shadow: 0 5px 14px rgba(0,0,0,.28);
+  transform: rotate(-45deg);
+}
+.wandrail-poi-marker svg { color: white; transform: rotate(45deg); }

@@ -15,7 +15,7 @@ export default function AnalystML() {
       <AnalystHeading eyebrow="IA & Recommandations" title="Des modèles simples, explicables et évalués honnêtement" description="Wandrail utilise KMeans pour explorer la structure des POI et KNN pour rapprocher les destinations des préférences éditoriales." />
       <div className="grid gap-4 sm:grid-cols-3">
         <AnalystKpi label="Clusters KMeans" value={data.kmeans.n_clusters} sub={`grille k=${data.kmeans.grid[0]} à ${data.kmeans.grid[1]}`} />
-        <AnalystKpi label="Silhouette" value={Number(data.kmeans.silhouette).toFixed(3)} sub="acceptable, mais optimum en borne haute" tone="amber" />
+        <AnalystKpi label="Silhouette" value={Number(data.kmeans.silhouette).toFixed(3)} sub={data.kmeans.interpretation} tone="amber" />
         <AnalystKpi label="Precision@5 / Recall@5" value="N/D" sub="aucune vérité terrain utilisateur" tone="blue" />
       </div>
 

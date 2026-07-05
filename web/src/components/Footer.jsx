@@ -12,10 +12,9 @@ export default function Footer() {
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-x-7 gap-y-2 text-sm font-medium text-muted">
         <Link to="/" className="hover:text-eco">Accueil</Link>
-        <Link to="/destinations" className="hover:text-eco">Destinations</Link>
+        <Link to="/destinations" className="hover:text-eco">Explorer</Link>
         <Link to="/carte" className="hover:text-eco">Carte</Link>
-        <Link to="/analyste" className="hover:text-eco">Espace Analyste</Link>
-        <Link to="/methodologie" className="hover:text-eco">Méthodologie</Link>
+        <Link to="/favoris" className="hover:text-eco">Mon voyage</Link>
       </div>
       <div className="mt-8 flex flex-wrap justify-center gap-5 text-[0.7rem] font-medium text-muted/80">
         <span>Durable</span>

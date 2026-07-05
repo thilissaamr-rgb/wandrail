@@ -1,6 +1,6 @@
-// Image de fond du hero : un train sur les rails (photo stable Unsplash).
+// TGV Duplex sur la LGV Méditerranée — Alaric Favier, CC BY-SA 3.0.
 export const HERO_IMAGE =
-  'https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=1920&q=80&auto=format&fit=crop'
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg/1280px-TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg'
 
 // Mapping image par destination.
 // On utilise picsum.photos avec des IDs choisis pour ressembler aux villes.

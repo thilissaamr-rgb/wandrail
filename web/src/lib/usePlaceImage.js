@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { wikipediaPlace } from './format'
 
 // Recupere une vraie photo de la ville depuis Wikipedia (resume REST).
 // Repli sur l'image fournie (picsum) si aucune photo n'est trouvee.
@@ -6,14 +7,12 @@ import { useEffect, useState } from 'react'
 
 const cache = new Map() // commune (minuscule) -> url | null | Promise
 
-const cap = (s) => String(s || '').replace(/\b\w/g, (c) => c.toUpperCase())
-
 function fetchPlaceImage(commune) {
   const key = String(commune || '').toLowerCase().trim()
   if (!key) return Promise.resolve(null)
   if (cache.has(key)) return Promise.resolve(cache.get(key))
 
-  const p = fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(cap(key))}`)
+  const p = fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikipediaPlace(key))}`)
     .then((r) => (r.ok ? r.json() : null))
     .then((d) => {
       // On prefere l'image originale (toujours servie, bonne qualite) tant

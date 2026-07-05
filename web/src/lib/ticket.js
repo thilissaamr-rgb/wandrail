@@ -1,114 +1,87 @@
 import { jsPDF } from 'jspdf'
-import QRCode from 'qrcode'
 
-const cap = (s) => String(s || '').replace(/\b\w/g, (c) => c.toUpperCase())
+const clean = (value) => String(value || '').replace(/[^\x20-\x7EÀ-ÿ]/g, '')
 
-// Genere et telecharge un billet de train PDF avec QR code.
-// Billet de demonstration : la reservation reelle se fait via SNCF Connect.
-export async function generateTicket({ origin, destination, departement, priceEur, co2SavedKg, distanceKm }) {
-  const ref = 'WDR-' + Math.random().toString(36).slice(2, 8).toUpperCase()
-  const now = new Date()
-  const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
-  const timeStr = '08:42'
-  const arriveStr = '10:05'
-  const voiture = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')
-  const place = String(Math.floor(Math.random() * 80) + 1).padStart(2, '0')
+// Génère un récapitulatif de préparation. Ce document n'est ni un billet,
+// ni une réservation : l'achat reste volontairement délégué à SNCF Connect.
+export async function generateTravelSummary({ origin, destination, departement, priceEur, co2SavedKg, distanceKm, activities = [] }) {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+  const GREEN = [10, 92, 54]
+  const INK = [20, 28, 24]
+  const MUTED = [92, 105, 98]
+  const dest = clean(destination)
 
-  const orig = cap(origin)
-  const dest = cap(destination)
-  const qrData = `WANDRAIL|${ref}|${orig}->${dest}|${dateStr}|${timeStr}`
-  const qr = await QRCode.toDataURL(qrData, { margin: 1, width: 300 })
-
-  const doc = new jsPDF({ unit: 'mm', format: [190, 90], orientation: 'landscape' })
-  const V = [124, 58, 237]
-  const INK = [17, 17, 17]
-  const GREY = [110, 110, 110]
-
-  // Fond
-  doc.setFillColor(255, 255, 255)
-  doc.rect(0, 0, 190, 90, 'F')
-
-  // Bandeau haut
-  doc.setFillColor(...V)
-  doc.rect(0, 0, 190, 16, 'F')
+  doc.setFillColor(...GREEN)
+  doc.rect(0, 0, 210, 34, 'F')
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(15)
-  doc.text('WANDRAIL', 8, 11)
-  doc.setFontSize(9)
+  doc.setFontSize(20)
+  doc.text('WANDRAIL', 18, 16)
+  doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
-  doc.text('BILLET DE TRAIN', 182, 11, { align: 'right' })
+  doc.text('RECAPITULATIF DE VOYAGE - DOCUMENT NON CONTRACTUEL', 18, 25)
 
-  // Trajet
   doc.setTextColor(...INK)
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(20)
-  doc.text(orig, 8, 34)
-  doc.setTextColor(...V)
-  doc.text('>', 8 + doc.getTextWidth(orig) + 5, 34)
-  doc.setTextColor(...INK)
-  doc.text(dest, 8 + doc.getTextWidth(orig) + 14, 34)
-
+  doc.setFontSize(25)
+  doc.text(dest, 18, 52)
+  doc.setFontSize(11)
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(...GREY)
-  doc.text('DEPART', 8, 40)
-  doc.text('ARRIVEE', 8 + doc.getTextWidth(orig) + 14, 40)
+  doc.setTextColor(...MUTED)
+  doc.text(`${clean(departement)} - accessible en train`, 18, 60)
 
-  // Infos billet (grille)
-  const infos = [
-    ['Date', dateStr],
-    ['Depart', `${timeStr} (${orig})`],
-    ['Arrivee', `${arriveStr} (${dest})`],
-    ['Train', 'TER Pays de la Loire'],
-    ['Voiture / Place', `${voiture} / ${place}`],
-    ['Departement', cap(departement || '')],
+  const metrics = [
+    ['Point de comparaison', clean(origin)],
+    ['Distance aller-retour', distanceKm != null ? `environ ${Math.round(distanceKm)} km` : 'non calculee'],
+    ['Budget train indicatif', priceEur != null ? `environ ${Math.round(priceEur)} EUR` : 'a verifier'],
+    ['CO2 evite vs voiture', co2SavedKg != null ? `environ ${Math.round(co2SavedKg)} kg` : 'non calcule'],
   ]
-  let y = 50
-  infos.forEach(([k, v]) => {
-    doc.setTextColor(...GREY)
+  let y = 78
+  metrics.forEach(([label, value]) => {
+    doc.setFillColor(245, 249, 247)
+    doc.roundedRect(18, y - 7, 174, 14, 3, 3, 'F')
+    doc.setTextColor(...MUTED)
     doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7.5)
-    doc.text(k.toUpperCase(), 8, y)
+    doc.setFontSize(9)
+    doc.text(label, 23, y + 1)
     doc.setTextColor(...INK)
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(9)
-    doc.text(String(v), 45, y)
-    y += 6
+    doc.text(value, 187, y + 1, { align: 'right' })
+    y += 18
   })
 
-  // Ligne de perforation avant le talon QR
-  doc.setDrawColor(200, 200, 200)
-  doc.setLineDashPattern([1.2, 1.2], 0)
-  doc.line(132, 18, 132, 90)
-  doc.setLineDashPattern([], 0)
-
-  // Talon : QR + reference
-  doc.addImage(qr, 'PNG', 143, 24, 36, 36)
-  doc.setTextColor(...GREY)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.text('Reference', 161, 65, { align: 'center' })
   doc.setTextColor(...INK)
   doc.setFont('helvetica', 'bold')
+  doc.setFontSize(15)
+  doc.text('Mon itineraire', 18, y + 6)
+  y += 16
   doc.setFontSize(10)
-  doc.text(ref, 161, 70, { align: 'center' })
-
-  // Bandeau eco bas
-  doc.setFillColor(240, 253, 244)
-  doc.rect(0, 79, 132, 11, 'F')
-  doc.setTextColor(22, 128, 61)
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
-  const eco =
-    co2SavedKg != null ? `~${Math.round(co2SavedKg)} kg CO2 economises vs voiture` : 'Voyage bas carbone'
-  doc.text(eco, 8, 86)
-  if (priceEur != null) {
-    doc.setTextColor(...V)
-    doc.setFontSize(11)
-    doc.text(`${Math.round(priceEur)} EUR`, 128, 86, { align: 'right' })
+  if (activities.length) {
+    activities.slice(0, 12).forEach((activity, index) => {
+      doc.setFillColor(...GREEN)
+      doc.circle(22, y - 1, 3, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(7)
+      doc.text(String(index + 1), 22, y + 1, { align: 'center' })
+      doc.setTextColor(...INK)
+      doc.setFontSize(10)
+      doc.text(clean(activity), 30, y + 1)
+      y += 10
+    })
+  } else {
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(...MUTED)
+    doc.text('Ajoutez des activites sur la fiche destination pour composer votre journee.', 18, y)
+    y += 12
   }
 
-  doc.save(`billet-wandrail-${dest}.pdf`.toLowerCase().replace(/\s+/g, '-'))
-  return ref
+  doc.setDrawColor(220, 226, 222)
+  doc.line(18, 265, 192, 265)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...MUTED)
+  doc.text('Estimations indicatives. Horaires, disponibilites et tarifs a verifier sur SNCF Connect.', 18, 274)
+  doc.text(`Genere le ${new Date().toLocaleDateString('fr-FR')} par Wandrail.`, 18, 280)
+
+  doc.save(`voyage-wandrail-${dest}.pdf`.toLowerCase().replace(/\s+/g, '-'))
 }

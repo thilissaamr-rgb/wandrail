@@ -3,17 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import DestinationCard from '../components/DestinationCard'
 import { SkeletonGrid } from '../components/CardSkeleton'
-import CategoryChips from '../components/CategoryChips'
-import ProfilCard from '../components/ProfilCard'
 import { HERO_IMAGE } from '../lib/images'
+import Icon from '../components/Icon'
 
-const PROFILS = [
-  { nom: 'Famille', desc: 'Parcs, activités enfants, nature, grands espaces' },
-  { nom: 'Solo', desc: 'Culture, patrimoine, aventure en liberté' },
-  { nom: 'Couple', desc: 'Gastronomie, charme, romantisme, détente' },
-  { nom: 'Groupe', desc: 'Sport, événements, animation, plaisir collectif' },
-  { nom: 'Eco', desc: 'Nature, mobilité douce, empreinte minimale' },
-]
+const fmt = (n) => Number(n || 0).toLocaleString('fr-FR')
 
 export default function Home() {
   const navigate = useNavigate()
@@ -28,7 +21,7 @@ export default function Home() {
     api.stats().then(setStats).catch(() => {})
     api.departements().then(setDeps).catch(() => {})
     api
-      .destinations({ limit: 9 })
+      .destinations({ limit: 6 })
       .then(setDests)
       .catch(() => setDests([]))
       .finally(() => setLoading(false))
@@ -38,172 +31,100 @@ export default function Home() {
     const params = new URLSearchParams()
     if (query) params.set('q', query)
     if (dep) params.set('departement', dep)
-    const qs = params.toString()
-    navigate(`/destinations${qs ? `?${qs}` : ''}`)
+    navigate(`/destinations${params.toString() ? `?${params}` : ''}`)
   }
 
   return (
     <div>
-      {/* HERO v2 : texte a gauche + image train a droite (style maquette) */}
-      <section className="border-b border-line bg-card">
+      {/* HERO simple : photo, titre, recherche, KPI. Fond blanc partout. */}
+      <section className="border-b border-line">
         <div className="mx-auto grid max-w-page grid-cols-1 gap-10 px-6 py-16 md:grid-cols-[1.1fr_1fr] md:items-center">
-          {/* Colonne gauche : texte + recherche */}
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-eco-soft px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-eco-dark">
-              <span className="h-1.5 w-1.5 rounded-full bg-eco" />
-              Plateforme data & IA
-            </div>
-            <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-ink md:text-6xl">
-              Le tourisme en train,
-              <br />
-              <span className="text-eco">autrement.</span>
+            <h1 className="text-4xl font-black leading-tight tracking-tight text-ink md:text-5xl">
+              Où souhaitez-vous partir ?
             </h1>
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-muted">
-              Découvrez des destinations accessibles en train, plus durables et moins connues.
+            <p className="mt-4 max-w-lg text-base leading-relaxed text-muted">
+              Trouvez une destination française accessible en train, avec ses activités,
+              son impact carbone évité et les gares les plus proches.
             </p>
 
-            {/* Barre de recherche */}
-            <div className="mt-8 flex max-w-xl flex-col gap-2 rounded-2xl border border-line bg-card p-2 shadow-lg sm:flex-row sm:items-center">
+            {/* Barre de recherche compacte */}
+            <div className="mt-8 flex max-w-xl flex-col gap-2 rounded-xl border border-line bg-card p-2 shadow-sm sm:flex-row sm:items-center">
               <div className="flex flex-1 items-center gap-2 px-3">
-                <svg viewBox="0 0 24 24" className="h-5 w-5 flex-shrink-0 text-muted" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3.5-3.5" />
-                </svg>
+                <Icon name="search" className="h-5 w-5 flex-shrink-0 text-muted" />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && search()}
-                  placeholder="Où souhaitez-vous partir ?"
+                  placeholder="Ville ou destination"
                   className="h-11 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
                 />
               </div>
+              <select
+                value={dep}
+                onChange={(e) => setDep(e.target.value)}
+                aria-label="Département"
+                className="h-11 rounded-lg border border-line bg-card px-3 text-sm text-ink outline-none focus:border-eco sm:w-48"
+              >
+                <option value="">Toute la France</option>
+                {deps.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
               <button
                 onClick={search}
-                className="h-11 rounded-xl bg-eco px-7 text-sm font-semibold text-white transition hover:bg-eco-dark"
+                className="h-11 rounded-lg bg-eco px-6 text-sm font-semibold text-white transition hover:bg-eco-dark"
               >
                 Rechercher
               </button>
             </div>
 
-            {/* Stats horizontales */}
+            {/* KPI discrets, sur une ligne */}
             {stats && (
-              <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-eco-soft text-eco">
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2">
-                      <path d="M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div className="text-lg font-black text-ink">+{stats.nb_lieux?.toLocaleString('fr-FR')}</div>
-                    <div className="text-xs text-muted">Points d’intérêt</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-eco-soft text-eco">
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                      <rect x="4" y="4" width="16" height="13" rx="3" />
-                      <path d="M4 11h16M8.5 20l-1.5 2M15.5 20l1.5 2" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div className="text-lg font-black text-ink">+{stats.nb_gares}</div>
-                    <div className="text-xs text-muted">Gares connectées</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-eco-soft text-eco">
-                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                      <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z" />
-                    </svg>
-                  </span>
-                  <div>
-                    <div className="text-lg font-black text-eco">-{stats.co2_vs_voiture_pct}%</div>
-                    <div className="text-xs text-muted">CO₂ vs voiture</div>
-                  </div>
-                </div>
+              <div className="mt-8 flex flex-wrap items-baseline gap-x-8 gap-y-3">
+                <Kpi value={fmt(stats.nb_gares)} label="gares" />
+                <Kpi value={fmt(stats.nb_lieux)} label="points d’intérêt" />
+                <Kpi value={`-${stats.co2_vs_voiture_pct}%`} label="CO₂ vs voiture" accent />
               </div>
             )}
           </div>
 
-          {/* Colonne droite : image du hero + carte impact flottante */}
+          {/* Photo hero avec crédit */}
           <div className="relative hidden md:block">
-            <div className="relative overflow-hidden rounded-3xl shadow-2xl">
+            <div className="relative overflow-hidden rounded-2xl shadow-lg">
               <img
                 src={HERO_IMAGE}
-                alt="Train dans les paysages français"
-                className="h-[420px] w-full object-cover"
+                alt="TGV en France"
+                className="h-[380px] w-full object-cover"
               />
-            </div>
-            {/* Carte flottante : impact CO2 */}
-            <div className="absolute -bottom-6 -left-6 rounded-2xl border border-line bg-card p-5 shadow-xl">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-eco-soft text-eco">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z" />
-                  </svg>
-                </span>
-                <div>
-                  <div className="text-[0.62rem] font-bold uppercase tracking-wide text-muted">Comparaison CO₂</div>
-                  <div className="text-2xl font-black tracking-tight text-ink">-{stats?.co2_vs_voiture_pct || 91}%</div>
-                  <div className="text-[0.65rem] text-muted">estimation train vs voiture</div>
-                </div>
-              </div>
+              <span className="absolute bottom-2 right-2 rounded bg-black/60 px-2 py-1 text-[0.6rem] text-white/80">
+                Photo : Wikimedia — CC BY-SA 3.0
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Profils */}
-      <section className="bg-card2 px-6 py-14">
-        <div className="mx-auto max-w-page">
-          <h2 className="text-3xl font-black tracking-tighter text-ink">
-            Quel type de voyageur êtes-vous ?
-          </h2>
-          <p className="mb-8 mt-1 text-sm text-muted">
-            Votre profil - des recommandations sur mesure
-          </p>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            {PROFILS.map((p) => (
-              <ProfilCard key={p.nom} nom={p.nom} desc={p.desc} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Filtres rapides par departement */}
-      <CategoryChips
-        items={[
-          { label: 'Toutes les destinations', value: null },
-          ...deps.map((d) => ({ label: d, value: d })),
-        ]}
-        active={null}
-        onSelect={(v) =>
-          navigate(`/destinations${v ? `?departement=${encodeURIComponent(v)}` : ''}`)
-        }
-      />
-
-      {/* Destinations */}
+      {/* Destinations populaires - grille compacte */}
       <section className="mx-auto max-w-page px-6 py-14">
-        <div className="mb-9 flex items-end justify-between">
+        <div className="mb-8 flex items-end justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-tighter text-ink">
-              Destinations incontournables
+            <h2 className="text-2xl font-black tracking-tight text-ink md:text-3xl">
+              Destinations populaires
             </h2>
             <p className="mt-1 text-sm text-muted">
-              Sélectionnées pour vous - attractivité + accessibilité ferroviaire
+              Nos gares les plus attractives, avec le plus d’activités à proximité.
             </p>
           </div>
           <button
             onClick={() => navigate('/destinations')}
-            className="whitespace-nowrap text-sm font-bold text-violet hover:underline"
+            className="hidden whitespace-nowrap text-sm font-semibold text-eco hover:underline sm:inline-flex sm:items-center sm:gap-1"
           >
-            Voir tout &rarr;
+            Voir toutes les destinations
+            <Icon name="chevronRight" className="h-4 w-4" />
           </button>
         </div>
 
         {loading ? (
-          <SkeletonGrid count={9} />
+          <SkeletonGrid count={6} />
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {dests.map((d) => (
@@ -212,6 +133,57 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* Comment ça marche - 3 étapes simples, style Rome2Rio */}
+      <section className="border-t border-line bg-card2 px-6 py-14">
+        <div className="mx-auto max-w-page">
+          <h2 className="text-2xl font-black tracking-tight text-ink">Comment ça marche ?</h2>
+          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+            <Step
+              n={1}
+              icon="search"
+              title="Cherchez"
+              text="Choisissez une destination, ou laissez-vous guider par département et par envie."
+            />
+            <Step
+              n={2}
+              icon="map"
+              title="Explorez"
+              text="Découvrez les activités, restaurants et lieux culturels autour de chaque gare."
+            />
+            <Step
+              n={3}
+              icon="train"
+              title="Réservez"
+              text="Comparez le train vs la voiture, puis achetez votre billet sur SNCF Connect."
+            />
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function Kpi({ value, label, accent = false }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <div className={`text-2xl font-black ${accent ? 'text-eco' : 'text-ink'}`}>{value}</div>
+      <div className="text-xs text-muted">{label}</div>
+    </div>
+  )
+}
+
+function Step({ n, icon, title, text }) {
+  return (
+    <div className="rounded-xl border border-line bg-card p-6">
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-eco/10 text-eco">
+          <Icon name={icon} className="h-5 w-5" />
+        </span>
+        <span className="text-xs font-bold uppercase tracking-wider text-muted">Étape {n}</span>
+      </div>
+      <h3 className="mt-4 text-lg font-bold text-ink">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
     </div>
   )
 }

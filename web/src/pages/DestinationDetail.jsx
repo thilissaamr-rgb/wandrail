@@ -14,11 +14,12 @@ import { api } from '../lib/api'
 import { destImage, poiImage } from '../lib/images'
 import { usePlaceImage } from '../lib/usePlaceImage'
 import { useTheme } from '../lib/theme.jsx'
-import { generateTicket } from '../lib/ticket'
+import { generateTravelSummary } from '../lib/ticket'
 import { ecoScore, ecoColor, ecoLabel } from '../lib/eco'
+import { iconSvg } from '../components/Icon'
 
-// Gare de reference (hub regional) pour la comparaison train / voiture.
-const HUB = { nom: 'Nantes', lat: 47.218371, lon: -1.541362 }
+// Scenario de reference explicite pour la comparaison nationale train / voiture.
+const HUB = { nom: 'Paris', lat: 48.8566, lon: 2.3522 }
 const CAR_G_PER_KM = 218 // gCO2/km (voiture, ADEME)
 const TRAIN_RATIO = 0.09 // le train emet ~91% de CO2 en moins
 
@@ -33,8 +34,36 @@ const icon = new L.Icon({
   shadowSize: [41, 41],
 })
 
+const POI_ICON = {
+  Restauration: 'wine',
+  Hebergement: 'hotel',
+  Culture: 'culture',
+  Patrimoine: 'castle',
+  Nature: 'leaf',
+  Loisirs: 'activity',
+  Evenement: 'event',
+}
+
+const poiMapIcon = (category) => L.divIcon({
+  className: 'wandrail-map-icon',
+  html: `<div class="wandrail-poi-marker">${iconSvg(POI_ICON[category] || 'pin', 17)}</div>`,
+  iconSize: [34, 38],
+  iconAnchor: [17, 36],
+})
+
 const cap = (s) => String(s || '').replace(/\b\w/g, (c) => c.toUpperCase())
 const WALK_MIN_PER_KM = 12 // marche a ~5 km/h
+
+const weatherLabel = (code) => {
+  if (code === 0) return 'Ciel dégagé'
+  if ([1, 2, 3].includes(code)) return 'Éclaircies'
+  if ([45, 48].includes(code)) return 'Brouillard'
+  if (code >= 51 && code <= 67) return 'Pluie'
+  if (code >= 71 && code <= 77) return 'Neige'
+  if (code >= 80 && code <= 82) return 'Averses'
+  if (code >= 95) return 'Orage'
+  return 'Météo actuelle'
+}
 
 // Distance a vol d'oiseau (km) entre deux points [lat, lon].
 function haversineKm(a, b) {
@@ -72,6 +101,7 @@ export default function DestinationDetail() {
   const [cat, setCat] = useState('Tout')
   const [selected, setSelected] = useState([]) // noms de lieux selectionnes
   const [ticketBusy, setTicketBusy] = useState(false)
+  const [weather, setWeather] = useState(null)
 
   // Chargement de la destination + restauration de l'itineraire sauvegarde.
   useEffect(() => {
@@ -85,6 +115,28 @@ export default function DestinationDetail() {
     }
     api.destination(nom).then(setData).catch(() => setError(true))
   }, [nom])
+
+  useEffect(() => {
+    const destination = data?.destination
+    if (!destination?.latitude || !destination?.longitude) {
+      setWeather(null)
+      return
+    }
+    let cancelled = false
+    const params = new URLSearchParams({
+      latitude: destination.latitude,
+      longitude: destination.longitude,
+      current: 'temperature_2m,apparent_temperature,weather_code,wind_speed_10m',
+      daily: 'temperature_2m_max,temperature_2m_min',
+      forecast_days: '1',
+      timezone: 'auto',
+    })
+    fetch(`https://api.open-meteo.com/v1/forecast?${params}`)
+      .then((response) => response.ok ? response.json() : null)
+      .then((result) => { if (!cancelled) setWeather(result) })
+      .catch(() => { if (!cancelled) setWeather(null) })
+    return () => { cancelled = true }
+  }, [data])
 
   // Met a jour la selection ET la persiste (par destination).
   const updateSelected = (updater) =>
@@ -231,7 +283,7 @@ export default function DestinationDetail() {
   const useRealLegs = routeInfo && routeInfo.legs.length === itinerary.length
   const directionsUrl = itinPoints.length > 0 ? gmapsDirectionsUrl(center, itinPoints) : null
 
-  // Comparaison train vs voiture, aller-retour depuis le hub (Nantes).
+  // Comparaison indicative train vs voiture, aller-retour depuis le hub de Paris.
   const distKm = haversineKm([HUB.lat, HUB.lon], center)
   const distAR = distKm * 2
   const carCo2 = (CAR_G_PER_KM * distAR) / 1000 // kg
@@ -244,6 +296,21 @@ export default function DestinationDetail() {
   const fmtTime = (m) => (m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m} min`)
   const showCompare = distKm >= 2
   const eco = ecoScore(d)
+  const categoryCounts = Object.entries(
+    pois.reduce((counts, place) => ({ ...counts, [place.categorie]: (counts[place.categorie] || 0) + 1 }), {}),
+  ).sort((a, b) => b[1] - a[1])
+  const mainCategory = categoryCounts[0]?.[0]
+  const closePlaces = pois.filter((place) => Number(place.distance_gare_km || 99) <= 2).length
+  const highlights = pois
+    .filter((place) => place.nom)
+    .sort((a, b) => Number(b.note_moyenne || 0) - Number(a.note_moyenne || 0) || Number(a.distance_gare_km || 99) - Number(b.distance_gare_km || 99))
+    .slice(0, 4)
+  const reasons = [
+    `${d.nb_poi_5km || pois.length} lieux recensés à moins de 5 km de la gare`,
+    closePlaces ? `${closePlaces} lieux accessibles dans un rayon de 2 km` : 'Un point d’arrivée au cœur de la destination',
+    mainCategory ? `Une offre particulièrement riche en ${mainCategory.toLowerCase()}` : null,
+    d.profil_touristique ? `Une destination au profil ${d.profil_touristique.toLowerCase()}` : null,
+  ].filter(Boolean)
 
   // Carte d'un lieu (reutilisee dans les groupes par centre d'interet).
   const renderCard = (p, key) => {
@@ -327,12 +394,14 @@ export default function DestinationDetail() {
 
       <div className="mx-auto max-w-page px-6 py-10">
         {/* Stats destination */}
-        <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mb-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
             { v: d.score_attractivite != null ? Number(d.score_attractivite).toFixed(1) : '-', l: 'Score attractivite' },
             { v: d.nb_poi_5km ?? '-', l: 'Lieux a 5 km' },
             { v: d.nb_categories ?? '-', l: 'Categories' },
-            { v: pois.length, l: 'Lieux affiches' },
+            weather?.current
+              ? { v: `${Math.round(weather.current.temperature_2m)}°`, l: weatherLabel(weather.current.weather_code) }
+              : { v: pois.length, l: 'Lieux affiches' },
           ].map((s) => (
             <div key={s.l} className="rounded-2xl border border-line bg-card p-5 text-center shadow-card">
               <div className="text-2xl font-extrabold tracking-tighter text-violet">{s.v}</div>
@@ -340,6 +409,32 @@ export default function DestinationDetail() {
             </div>
           ))}
         </div>
+        {weather?.current && (
+          <p className="mb-10 text-right text-xs text-muted">Ressenti {Math.round(weather.current.apparent_temperature)} °C · vent {Math.round(weather.current.wind_speed_10m)} km/h · données Open‑Meteo</p>
+        )}
+
+        <section className="mb-10 grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
+          <div className="rounded-3xl border border-line bg-card p-6 shadow-card">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-eco">Pourquoi choisir {ville} ?</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-ink">Une escapade simple à vivre depuis la gare</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted">Arrivez en train, puis composez votre séjour à partir des lieux réellement recensés autour de la gare.</p>
+            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+              {reasons.map((reason) => <li key={reason} className="flex gap-3 rounded-xl bg-card2 p-3 text-sm text-ink"><span className="text-eco">✓</span><span>{reason}</span></li>)}
+            </ul>
+          </div>
+          <div className="rounded-3xl border border-line bg-card p-6 shadow-card">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-eco">À ne pas manquer</p>
+            <div className="mt-4 space-y-3">
+              {highlights.map((place, index) => (
+                <button key={`${place.nom}-${index}`} onClick={() => toggle(place.nom)} className="flex w-full items-center gap-3 rounded-xl border border-line p-3 text-left transition hover:border-eco">
+                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-eco text-xs font-black text-white">{index + 1}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-ink">{cap(place.nom)}</span><span className="text-xs text-muted">{place.categorie}{place.distance_gare_km != null ? ` · ${Number(place.distance_gare_km).toFixed(1)} km de la gare` : ''}</span></span>
+                  <span className="text-eco">+</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <div className="flex flex-wrap gap-3">
           <a
@@ -358,13 +453,14 @@ export default function DestinationDetail() {
             onClick={async () => {
               setTicketBusy(true)
               try {
-                await generateTicket({
+                await generateTravelSummary({
                   origin: HUB.nom,
                   destination: ville,
                   departement: d.departement,
                   priceEur: trainCost,
                   co2SavedKg: co2Saved,
                   distanceKm: distKm,
+                  activities: itinerary.map((place) => place.nom),
                 })
               } finally {
                 setTicketBusy(false)
@@ -376,7 +472,7 @@ export default function DestinationDetail() {
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            {ticketBusy ? 'Generation...' : 'Telecharger le billet (PDF)'}
+            {ticketBusy ? 'Génération...' : 'Télécharger le récapitulatif (PDF)'}
           </button>
         </div>
 
@@ -489,6 +585,12 @@ export default function DestinationDetail() {
                 <Marker position={center} icon={icon}>
                   <Popup>Gare de {ville}</Popup>
                 </Marker>
+
+                {visible.slice(0, 40).filter((place) => place.latitude && place.longitude).map((place, index) => (
+                  <Marker key={`poi-map-${place.nom}-${index}`} position={[place.latitude, place.longitude]} icon={poiMapIcon(place.categorie)}>
+                    <Popup><strong>{cap(place.nom)}</strong><br />{place.categorie}{place.distance_gare_km != null ? ` · ${Number(place.distance_gare_km).toFixed(1)} km de la gare` : ''}</Popup>
+                  </Marker>
+                ))}
 
                 {/* Trace de l'itineraire : vrai chemin pieton OSRM, sinon ligne directe */}
                 {routeGeo ? (

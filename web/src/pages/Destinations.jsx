@@ -4,7 +4,8 @@ import { api } from '../lib/api'
 import DestinationCard from '../components/DestinationCard'
 import { SkeletonGrid } from '../components/CardSkeleton'
 
-const VOYAGEURS = ['Famille', 'Solo', 'Couple', 'Groupe', 'Eco']
+const VOYAGEURS = ['Famille', 'Solo', 'Couple', 'Entre amis', 'Senior']
+const CATEGORIES = ['Nature', 'Restauration', 'Culture', 'Patrimoine', 'Hebergement', 'Loisirs', 'Evenement']
 
 export default function Destinations() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -16,9 +17,10 @@ export default function Destinations() {
   const q = searchParams.get('q') || ''
   const departement = searchParams.get('departement') || ''
   const profil = searchParams.get('profil') || ''
+  const categorie = searchParams.get('categorie') || ''
   const voyageur = searchParams.get('voyageur') || ''
   const sort = searchParams.get('sort') || 'score'
-  const hasFilters = q || departement || profil || voyageur || sort !== 'score'
+  const hasFilters = q || departement || profil || categorie || voyageur || sort !== 'score'
 
   const setParam = (key, value) => {
     const next = new URLSearchParams(searchParams)
@@ -38,7 +40,7 @@ export default function Destinations() {
     // client par departement / recherche / tri. Sinon, recherche serveur.
     const source = voyageur
       ? api.recommandations(voyageur)
-      : api.destinations({ q, departement, profil, sort, limit: 60 })
+      : api.destinations({ q, departement, profil, categorie, sort, limit: 60 })
 
     source
       .then((rows) => {
@@ -65,7 +67,7 @@ export default function Destinations() {
       })
       .catch(() => setDests([]))
       .finally(() => setLoading(false))
-  }, [q, departement, profil, voyageur, sort])
+  }, [q, departement, profil, categorie, voyageur, sort])
 
   const selCls =
     'h-11 w-full rounded-xl border-[1.5px] border-line bg-card px-3 text-sm text-ink outline-none focus:border-violet'
@@ -88,6 +90,14 @@ export default function Destinations() {
                 Réinitialiser
               </button>
             )}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-muted">Envie principale</label>
+            <select value={categorie} onChange={(e) => setParam('categorie', e.target.value)} className={selCls}>
+              <option value="">Toutes les envies</option>
+              {CATEGORIES.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
           </div>
 
           <div>

@@ -26,7 +26,7 @@ export default function AnalystOverview() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <AnalystKpi label="Gares" value={fmt(data.kpi.nb_gares)} sub="Pays de la Loire" />
+        <AnalystKpi label="Gares" value={fmt(data.kpi.nb_gares)} sub="France métropolitaine" />
         <AnalystKpi label="POI" value={fmt(data.kpi.nb_poi)} sub="DATAtourisme + OSM" tone="blue" />
         <AnalystKpi label="Destinations" value={fmt(data.kpi.nb_dest_analysees)} sub="avec score d’attractivité" tone="green" />
         <AnalystKpi label="Recommandations" value={fmt(data.kpi.nb_recommandations)} sub={`${data.kpi.nb_profils} profils voyageurs`} tone="amber" />

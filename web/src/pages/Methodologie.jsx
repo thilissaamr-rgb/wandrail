@@ -37,20 +37,21 @@ export default function Methodologie() {
       <div className="mt-8 space-y-6">
         <Section num={1} title="Périmètre et sources">
           <p>
-            Wandrail couvre actuellement les <strong className="text-ink">Pays de la Loire</strong>.
+            Wandrail couvre la <strong className="text-ink">France métropolitaine</strong>, Corse comprise.
             Les sources sont le référentiel des gares SNCF, DATAtourisme, OpenStreetMap et
             les données communales de l’API géographique de l’État (référentiel INSEE).
           </p>
           <p>
-            Le périmètre régional est un choix de maîtrise du volume et non une promesse de
-            couverture nationale. Les horaires et prix temps réel ne sont pas utilisés.
+            Le Bronze conserve le flux DATAtourisme national complet. La couche Silver limite le
+            périmètre aux territoires desservis par un réseau ferroviaire voyageurs. Les horaires
+            et prix temps réel ne sont pas utilisés.
           </p>
         </Section>
 
         <Section num={2} title="Architecture et pipeline Médaillon">
           <Code>{`Sources ouvertes
   -> Bronze : réponses brutes et traçabilité d'extraction
-  -> Silver : typage, filtrage régional, dédoublonnage, géolocalisation
+  -> Silver : typage, filtrage ferroviaire national, dédoublonnage, géolocalisation
   -> Gold   : dimensions, agrégats, scores et features ML
   -> Modèles KMeans / KNN
   -> API FastAPI
@@ -65,9 +66,9 @@ export default function Methodologie() {
         <Section num={3} title="Nettoyage et contrôles qualité">
           <ul className="list-disc space-y-1 pl-5">
             <li>unicité des gares par code UIC et dédoublonnage des POI par nom et coordonnées ;</li>
-            <li>contrôle des coordonnées dans l’emprise des Pays de la Loire ;</li>
+            <li>contrôle des coordonnées dans l’emprise de la France métropolitaine ;</li>
             <li>normalisation des catégories DATAtourisme et OSM ;</li>
-            <li>contrôle des départements 44, 49, 53, 72 et 85 ;</li>
+            <li>contrôle des codes des départements métropolitains, Corse comprise ;</li>
             <li>contrôle des clés entre POI, gares, dimensions Gold et recommandations ;</li>
             <li>séparation des valeurs manquantes, invalides et simplement peu précises.</li>
           </ul>
@@ -99,7 +100,7 @@ export default function Methodologie() {
 20 %  diversité des catégories à moins de 10 km
 10 %  fréquentation annuelle de la gare`}</Code>
           <p>
-            Il mesure une richesse d’offre relative au jeu régional. Il ne constitue ni une note
+            Il mesure une richesse d’offre relative au jeu national. Il ne constitue ni une note
             utilisateur ni une mesure causale de l’attractivité touristique.
           </p>
         </Section>
@@ -111,21 +112,21 @@ export default function Methodologie() {
             et indicateur de popularité, toutes standardisées.
           </p>
           <p>
-            Le modèle sérialisé retient <strong className="text-ink">k = 15</strong> et un score de
-            silhouette de <strong className="text-ink">0,434</strong>. Ce résultat est acceptable,
-            mais k atteint la borne supérieure testée et les clusters sont dominés par l’hébergement
-            et la restauration : l’interprétation métier reste donc prudente.
+            Le modèle national sérialisé retient <strong className="text-ink">k = 14</strong> et un score de
+            silhouette de <strong className="text-ink">0,324</strong>, calculé sur un échantillon
+            d’évaluation de 5 000 POI. L’optimum est intérieur à la grille 2–15, mais les clusters
+            restent dominés par l’hébergement et la restauration : l’interprétation métier demeure prudente.
           </p>
         </Section>
 
         <Section num={7} title="KNN : recommandations par profil">
           <p>
-            Le KNN compare un vecteur de préférences à 136 vecteurs de destinations. Les 11 features
+            Le KNN compare un vecteur de préférences à l’ensemble des destinations nationales. Les 11 features
             standardisées décrivent les volumes par catégorie à 5 km, le nombre total de POI,
             la diversité et le score d’attractivité. La distance utilisée est la distance cosinus.
           </p>
           <p>
-            Cinq profils éditoriaux sont définis : Famille, Solo, Couple, Groupe et Éco. Pour chaque
+            Cinq profils éditoriaux sont définis : Famille, Solo, Couple, Entre amis et Senior. Pour chaque
             résultat, l’API expose le rang, le score de correspondance et une justification factuelle.
           </p>
         </Section>

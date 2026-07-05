@@ -9,6 +9,7 @@ const Destinations = lazy(() => import('./pages/Destinations'))
 const DestinationDetail = lazy(() => import('./pages/DestinationDetail'))
 const Carte = lazy(() => import('./pages/Carte'))
 const Favoris = lazy(() => import('./pages/Favoris'))
+const Profil = lazy(() => import('./pages/Profil'))
 const DataDashboard = lazy(() => import('./pages/DataDashboard'))
 const Methodologie = lazy(() => import('./pages/Methodologie'))
 const NotFound = lazy(() => import('./pages/NotFound'))
@@ -34,7 +35,8 @@ export default function App() {
               <Route path="/destinations/:nom" element={<DestinationDetail />} />
               <Route path="/carte" element={<Carte />} />
               <Route path="/favoris" element={<Favoris />} />
-              <Route path="/data-dashboard" element={<DataDashboard />} />
+              <Route path="/profil" element={<Profil />} />
+              <Route path="/data-dashboard" element={<Navigate to="/analyste/data-quality" replace />} />
               <Route path="/methodologie" element={<Methodologie />} />
               <Route path="/analyste" element={<AnalystLayout />}>
                 <Route index element={<AnalystOverview />} />

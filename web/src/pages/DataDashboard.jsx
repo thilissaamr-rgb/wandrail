@@ -166,7 +166,7 @@ export default function DataDashboard() {
             </p>
           </div>
           <div className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
-            {fmt(dq.nulls_total)} valeurs NULL critiques
+            {fmt(dq.nulls_total)} valeurs NULL suivies, dont les notes utilisateur absentes par conception
           </div>
         </div>
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -212,7 +212,7 @@ export default function DataDashboard() {
             Gares par departement
           </h2>
           <p className="mb-5 text-xs text-muted">
-            Distribution du reseau ferroviaire regional (silver.gares).
+            Distribution du réseau ferroviaire national (silver.gares).
           </p>
           <div className="space-y-4">
             {dq.top_departements.map((d) => (

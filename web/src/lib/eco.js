@@ -12,7 +12,7 @@
 //   - attractivite : score d'attractivite de la gare (silver/gold) / 10.
 //   - richesse     : nombre de lieux a 5 km, normalise a 500.
 
-const HUB = { lat: 47.218371, lon: -1.541362 } // Nantes, hub regional
+const HUB = { lat: 48.8566, lon: 2.3522 } // Scenario national de reference : Paris
 const CAR_G_PER_KM = 218 // gCO2/km (voiture, ADEME)
 const TRAIN_RATIO = 0.09 // le train emet ~91% de CO2 en moins
 
