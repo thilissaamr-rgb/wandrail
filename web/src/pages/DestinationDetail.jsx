@@ -11,12 +11,13 @@ import {
 } from 'react-leaflet'
 import L from 'leaflet'
 import { api } from '../lib/api'
-import { destImage, poiImage } from '../lib/images'
+import { destImage } from '../lib/images'
 import { usePlaceImage } from '../lib/usePlaceImage'
 import { useTheme } from '../lib/theme.jsx'
 import { generateTravelSummary } from '../lib/ticket'
 import { ecoScore, ecoColor, ecoLabel } from '../lib/eco'
-import { iconSvg } from '../components/Icon'
+import Icon, { iconSvg } from '../components/Icon'
+import { cleanPoiName, formatPlaceName } from '../lib/format'
 
 // Scenario de reference explicite pour la comparaison nationale train / voiture.
 const HUB = { nom: 'Paris', lat: 48.8566, lon: 2.3522 }
@@ -51,7 +52,12 @@ const poiMapIcon = (category) => L.divIcon({
   iconAnchor: [17, 36],
 })
 
-const cap = (s) => String(s || '').replace(/\b\w/g, (c) => c.toUpperCase())
+const cleanLabel = (value) => String(value || '')
+  .replace(/^\s*\[\s*['"]?/, '')
+  .replace(/['"]?\s*\]\s*$/, '')
+  .replace(/^['"]|['"]$/g, '')
+  .trim()
+const cap = (value) => formatPlaceName(cleanLabel(value))
 const WALK_MIN_PER_KM = 12 // marche a ~5 km/h
 
 const weatherLabel = (code) => {
@@ -159,7 +165,8 @@ export default function DestinationDetail() {
 
   // Vraie photo de la ville (Wikipedia) avec repli picsum.
   const communeName = data?.destination?.commune || data?.destination?.nom_gare || ''
-  const heroImg = usePlaceImage(communeName, destImage(communeName, 1600, 700))
+  // Photo Wikipedia UNIQUEMENT. Pas de repli Picsum aleatoire.
+  const heroImg = usePlaceImage(communeName, null)
   const { dark } = useTheme()
   const tileUrl = dark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
@@ -315,27 +322,38 @@ export default function DestinationDetail() {
   // Carte d'un lieu (reutilisee dans les groupes par centre d'interet).
   const renderCard = (p, key) => {
     const isSel = selected.includes(p.nom)
+    const iconName = POI_ICON[p.categorie] || 'pin'
+    const nom = cleanPoiName(p.nom) // parse "['xxx']" -> "xxx"
+    // On n'affiche l'image QUE si une vraie image DATAtourisme est fournie.
+    // Sinon on garde le placeholder categorie (fond doux + icone) : pas de
+    // Picsum aleatoire qui casse la credibilite.
+    const hasImage = Boolean(p.image_url && p.image_url.startsWith('http'))
     return (
       <button
         key={key}
         onClick={() => toggle(p.nom)}
-        className={`group overflow-hidden rounded-xl border bg-card text-left shadow-card transition-all ${
-          isSel ? 'border-violet ring-2 ring-violet/20' : 'border-line hover:border-violet/40'
+        className={`group overflow-hidden rounded-xl border bg-card text-left shadow-sm transition-all ${
+          isSel ? 'border-eco ring-2 ring-eco/20' : 'border-line hover:border-eco/40'
         }`}
       >
-        <div className="relative h-32 overflow-hidden bg-card2">
-          <img
-            src={poiImage(p.categorie, p.nom)}
-            alt={cap(p.nom)}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-          <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[0.65rem] font-semibold text-white backdrop-blur">
+        <div className="relative flex h-28 items-center justify-center overflow-hidden bg-gradient-to-br from-eco/5 to-eco/15 text-eco">
+          <Icon name={iconName} className="h-9 w-9 opacity-60" strokeWidth={1.5} />
+          {hasImage && (
+            <img
+              src={p.image_url}
+              alt={nom}
+              loading="lazy"
+              title={p.image_credit || 'Photo DATAtourisme'}
+              onError={(event) => { event.currentTarget.style.display = 'none' }}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          )}
+          <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[0.65rem] font-semibold text-white backdrop-blur">
             {p.categorie}
           </span>
           <span
             className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold shadow ${
-              isSel ? 'bg-violet text-white' : 'bg-white/90 text-neutral-900'
+              isSel ? 'bg-eco text-white' : 'bg-white/95 text-neutral-900'
             }`}
           >
             {isSel ? '✓' : '+'}
@@ -343,21 +361,17 @@ export default function DestinationDetail() {
         </div>
         <div className="p-3">
           <div className="flex items-start justify-between gap-2">
-            <div className="truncate font-bold text-ink">{cap(p.nom)}</div>
-            {p.note_moyenne > 0 ? (
+            <div className="line-clamp-2 font-semibold text-ink">{nom}</div>
+            {p.note_moyenne > 0 && (
               <span className="flex flex-shrink-0 items-center gap-0.5 text-xs font-bold text-amber-500">
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
-                  <path d="M12 2l2.9 6.3 6.9.7-5.1 4.7 1.4 6.8L12 17.8 5.9 20.5l1.4-6.8L2.2 9l6.9-.7z" />
-                </svg>
+                <Icon name="star" className="h-3.5 w-3.5" />
                 {Number(p.note_moyenne).toFixed(1)}
               </span>
-            ) : (
-              <span className="flex-shrink-0 text-[0.65rem] italic text-muted">non note</span>
             )}
           </div>
-          <div className="mt-0.5 text-xs text-muted">
+          <div className="mt-1 text-xs text-muted">
             {p.distance_gare_km != null ? `${Number(p.distance_gare_km).toFixed(1)} km` : ''}
-            {p.temps_marche_min != null ? ` - ${Math.round(p.temps_marche_min)} min a pied` : ''}
+            {p.temps_marche_min != null ? ` · ${Math.round(p.temps_marche_min)} min à pied` : ''}
           </div>
         </div>
       </button>
@@ -368,17 +382,21 @@ export default function DestinationDetail() {
   // categorie ; sinon, uniquement la categorie choisie.
   const groups =
     cat === 'Tout'
-      ? cats
-          .filter((c) => c !== 'Tout')
-          .map((c) => ({ cat: c, items: pois.filter((p) => p.categorie === c).slice(0, 12) }))
+      ? categoryCounts
+          .map(([category]) => category)
+          .filter((category) => category !== 'Autre')
+          .slice(0, 4)
+          .map((category) => ({ cat: category, items: pois.filter((p) => p.categorie === category).slice(0, 3) }))
           .filter((g) => g.items.length)
       : [{ cat, items: visible }]
 
   return (
     <div>
-      {/* Hero image */}
-      <div className="relative h-80 overflow-hidden bg-neutral-900">
-        <img src={heroImg} alt={ville} className="h-full w-full object-cover" />
+      {/* Hero image : Wikipedia si dispo, sinon degrade sobre navy */}
+      <div className="relative h-80 overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        {heroImg && (
+          <img src={heroImg} alt={ville} className="h-full w-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-page px-6 pb-7">
           <Link to="/destinations" className="mb-3 inline-block text-sm font-semibold text-white/70 hover:text-white">
@@ -428,7 +446,7 @@ export default function DestinationDetail() {
               {highlights.map((place, index) => (
                 <button key={`${place.nom}-${index}`} onClick={() => toggle(place.nom)} className="flex w-full items-center gap-3 rounded-xl border border-line p-3 text-left transition hover:border-eco">
                   <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-eco text-xs font-black text-white">{index + 1}</span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-ink">{cap(place.nom)}</span><span className="text-xs text-muted">{place.categorie}{place.distance_gare_km != null ? ` · ${Number(place.distance_gare_km).toFixed(1)} km de la gare` : ''}</span></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold text-ink">{cleanPoiName(place.nom)}</span><span className="text-xs text-muted">{place.categorie}{place.distance_gare_km != null ? ` · ${Number(place.distance_gare_km).toFixed(1)} km de la gare` : ''}</span></span>
                   <span className="text-eco">+</span>
                 </button>
               ))}
@@ -588,7 +606,7 @@ export default function DestinationDetail() {
 
                 {visible.slice(0, 40).filter((place) => place.latitude && place.longitude).map((place, index) => (
                   <Marker key={`poi-map-${place.nom}-${index}`} position={[place.latitude, place.longitude]} icon={poiMapIcon(place.categorie)}>
-                    <Popup><strong>{cap(place.nom)}</strong><br />{place.categorie}{place.distance_gare_km != null ? ` · ${Number(place.distance_gare_km).toFixed(1)} km de la gare` : ''}</Popup>
+                    <Popup><strong>{cleanPoiName(place.nom)}</strong><br />{place.categorie}{place.distance_gare_km != null ? ` · ${Number(place.distance_gare_km).toFixed(1)} km de la gare` : ''}</Popup>
                   </Marker>
                 ))}
 
@@ -606,7 +624,7 @@ export default function DestinationDetail() {
                     pathOptions={{ color: '#fff', weight: 2, fillColor: '#7c3aed', fillOpacity: 1 }}
                   >
                     <Popup>
-                      Etape {i + 1} : {itinerary[i].nom}
+                      Étape {i + 1} : {cleanPoiName(itinerary[i].nom)}
                     </Popup>
                   </CircleMarker>
                 ))}
@@ -697,7 +715,7 @@ export default function DestinationDetail() {
                             {idx + 1}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-semibold text-ink">{cap(p.nom)}</div>
+                            <div className="truncate text-sm font-semibold text-ink">{cleanPoiName(p.nom)}</div>
                             <div className="text-xs text-muted">{p.categorie}</div>
                           </div>
                           <button
