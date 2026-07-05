@@ -10,7 +10,11 @@ Lancement local :
 
 Documentation interactive : http://localhost:8000/docs
 """
+import json
 import os
+import time
+from threading import Lock
+from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,8 +30,8 @@ from security import create_access_token, current_user_id, hash_password, verify
 
 app = FastAPI(
     title="Wandrail API",
-    description="Donnees tourisme en train - Pays de la Loire",
-    version="1.0.0",
+    description="Donnees nationales du tourisme accessible en train en France",
+    version="2.0.0",
 )
 
 # ── CORS : autoriser le front (dev Vite + prod) ────────────────────
@@ -40,9 +44,32 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in origins if o.strip()],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+# ── Cache in-memory pour les endpoints lents (analyste/data-quality) ──
+# Ces endpoints font des calculs SQL lourds sur 287k POI. On garde le
+# resultat en memoire pendant 5 min pour repondre en 20ms au lieu de 3-8s.
+_CACHE: dict[str, tuple[float, Any]] = {}
+_CACHE_LOCK = Lock()
+_CACHE_TTL = 300  # 5 minutes
+
+
+def cache_get(key: str) -> Any | None:
+    """Renvoie la valeur cachee si elle existe et pas expiree."""
+    with _CACHE_LOCK:
+        hit = _CACHE.get(key)
+        if hit and (time.time() - hit[0]) < _CACHE_TTL:
+            return hit[1]
+    return None
+
+
+def cache_set(key: str, value: Any) -> Any:
+    with _CACHE_LOCK:
+        _CACHE[key] = (time.time(), value)
+    return value
 
 
 # ── Helpers ────────────────────────────────────────────────────────
@@ -77,6 +104,12 @@ class FavoriteIn(BaseModel):
     destination: str = Field(min_length=1, max_length=200)
 
 
+class ProfileUpdateIn(BaseModel):
+    pseudo: str = Field(min_length=2, max_length=80)
+    ville_depart: str | None = Field(default=None, max_length=100)
+    preferences: dict[str, Any] = Field(default_factory=dict)
+
+
 @app.exception_handler(SQLAlchemyError)
 def database_exception_handler(_request, _exc):
     return JSONResponse(
@@ -99,50 +132,64 @@ def health():
 
 @app.get("/api/data-quality")
 def data_quality():
-    """KPI data pour le tableau de bord.
-
-    Regroupe les indicateurs cle du pipeline Medaillon (bronze -> silver -> gold)
-    et un score global de qualite des donnees.
-    """
+    """KPI data pour le tableau de bord. Reponse cachee 5 min."""
+    hit = cache_get("data_quality")
+    if hit is not None:
+        return hit
     with engine.connect() as conn:
-        return build_data_quality_report(conn)
+        return cache_set("data_quality", build_data_quality_report(conn))
 
 
 @app.get("/api/anomalies")
 def anomalies():
+    hit = cache_get("anomalies")
+    if hit is not None:
+        return hit
     with engine.connect() as conn:
         report = build_data_quality_report(conn)
-    return {
+    return cache_set("anomalies", {
         "quality_score": report["quality_score"],
         "anomalies": report["anomalies"],
         "anomalies_total": report["anomalies_total"],
         "nulls": report["nulls"],
         "nulls_total": report["nulls_total"],
-    }
+    })
 
 
 @app.get("/api/pipeline")
 def pipeline():
+    hit = cache_get("pipeline")
+    if hit is not None:
+        return hit
     with engine.connect() as conn:
-        return build_pipeline(conn)
+        return cache_set("pipeline", build_pipeline(conn))
 
 
 @app.get("/api/ml-metrics")
 def ml_metrics():
+    hit = cache_get("ml_metrics")
+    if hit is not None:
+        return hit
     with engine.connect() as conn:
-        return build_ml_metrics(conn)
+        return cache_set("ml_metrics", build_ml_metrics(conn))
 
 
 @app.get("/api/analyste/overview")
 def analyste_overview():
+    hit = cache_get("analyste_overview")
+    if hit is not None:
+        return hit
     with engine.connect() as conn:
-        return build_overview(conn)
+        return cache_set("analyste_overview", build_overview(conn))
 
 
 @app.get("/api/analyste/decision")
 def analyste_decision():
+    hit = cache_get("analyste_decision")
+    if hit is not None:
+        return hit
     with engine.connect() as conn:
-        return build_decision_support(conn)
+        return cache_set("analyste_decision", build_decision_support(conn))
 
 
 @app.get("/api/top-destinations")
@@ -216,10 +263,11 @@ def profils():
 def destinations(
     q: str | None = Query(None, description="Recherche commune ou gare"),
     departement: str | None = None,
+    categorie: str | None = Query(None, pattern="^(Nature|Restauration|Culture|Patrimoine|Hebergement|Loisirs|Evenement)$"),
     profil: str | None = None,
     min_score: float = 0.0,
     sort: str = Query("score", pattern="^(score|nom|poi)$"),
-    limit: int = Query(60, ge=1, le=500),
+    limit: int = Query(60, ge=1, le=5000),
 ):
     """Liste filtrable des destinations (gares enrichies)."""
     clauses = [
@@ -238,6 +286,13 @@ def destinations(
     if profil:
         clauses.append("d.profil_touristique = :profil")
         params["profil"] = profil
+    if categorie:
+        clauses.append("""EXISTS (
+            SELECT 1 FROM silver.poi_enrichi pe
+            WHERE pe.id_gare_1 = g.id AND pe.distance_gare_km <= 5
+              AND pe.categorie = :categorie
+        )""")
+        params["categorie"] = categorie
 
     order = {
         "score": "d.score_attractivite DESC",
@@ -278,6 +333,7 @@ def destination_detail(nom_gare: str, rayon: float = Query(10.0, ge=0.5, le=50))
     sql_poi = text(
         """
         SELECT p.nom, p.categorie, p.commune, p.latitude, p.longitude,
+               p.image_url, p.image_credit,
                p.note_moyenne, pe.distance_gare_km, pe.temps_marche_min
         FROM silver.poi p
         JOIN silver.poi_enrichi pe ON pe.id_poi = p.id
@@ -342,7 +398,7 @@ def register(data: RegisterIn):
                 """
                 INSERT INTO userapp.users (email, pseudo, password_hash, ville_depart)
                 VALUES (:e, :p, :h, :v)
-                RETURNING id, pseudo, email
+                RETURNING id, pseudo, email, ville_depart, preferences
                 """
             ),
             {"e": email, "p": data.pseudo.strip(), "h": hash_password(data.password),
@@ -352,6 +408,8 @@ def register(data: RegisterIn):
         "id": row[0],
         "pseudo": row[1],
         "email": row[2],
+        "ville_depart": row[3],
+        "preferences": row[4] or {},
         "access_token": create_access_token(row[0]),
         "token_type": "bearer",
     }
@@ -363,7 +421,7 @@ def login(data: LoginIn):
     email = data.email.strip().lower()
     with engine.connect() as conn:
         row = conn.execute(
-            text("SELECT id, pseudo, email, password_hash FROM userapp.users WHERE email = :e"),
+            text("SELECT id, pseudo, email, password_hash, ville_depart, preferences FROM userapp.users WHERE email = :e"),
             {"e": email},
         ).fetchone()
     if row is None or not verify_password(data.password, row[3]):
@@ -372,9 +430,73 @@ def login(data: LoginIn):
         "id": row[0],
         "pseudo": row[1],
         "email": row[2],
+        "ville_depart": row[4],
+        "preferences": row[5] or {},
         "access_token": create_access_token(row[0]),
         "token_type": "bearer",
     }
+
+
+@app.get("/api/profile")
+def profile(user_id: int = Depends(current_user_id)):
+    """Profil, préférences et activité réelle de l'utilisateur connecté."""
+    with engine.connect() as conn:
+        user = conn.execute(
+            text("""
+                SELECT id, pseudo, email, ville_depart, preferences, created_at
+                FROM userapp.users WHERE id = :u
+            """), {"u": user_id}
+        ).mappings().one_or_none()
+        if user is None:
+            raise HTTPException(status_code=404, detail="Compte introuvable")
+        stats = conn.execute(
+            text("""
+                SELECT COUNT(*) AS nb_trajets,
+                       COUNT(DISTINCT destination) AS villes_visitees,
+                       COALESCE(SUM(co2_saved_kg), 0) AS co2_evite_kg
+                FROM userapp.user_visits WHERE user_id = :u
+            """), {"u": user_id}
+        ).mappings().one()
+        favorites_count = conn.execute(
+            text("SELECT COUNT(*) FROM userapp.user_favorites WHERE user_id = :u"),
+            {"u": user_id},
+        ).scalar_one()
+        visits = rows_to_dicts(conn.execute(
+            text("""
+                SELECT destination, co2_saved_kg, dist_km, visited_at
+                FROM userapp.user_visits WHERE user_id = :u
+                ORDER BY visited_at DESC LIMIT 8
+            """), {"u": user_id}
+        ))
+    return {**dict(user), **dict(stats), "nb_favoris": favorites_count, "trajets": visits}
+
+
+@app.patch("/api/profile")
+def update_profile(data: ProfileUpdateIn, user_id: int = Depends(current_user_id)):
+    allowed_preferences = {
+        key: value for key, value in data.preferences.items()
+        if key in {"voyageur", "envies"}
+    }
+    with engine.begin() as conn:
+        row = conn.execute(
+            text("""
+                UPDATE userapp.users
+                SET pseudo = :pseudo,
+                    ville_depart = :ville,
+                    preferences = CAST(:preferences AS jsonb)
+                WHERE id = :u
+                RETURNING id, pseudo, email, ville_depart, preferences
+            """),
+            {
+                "pseudo": data.pseudo.strip(),
+                "ville": (data.ville_depart or "").strip() or None,
+                "preferences": json.dumps(allowed_preferences),
+                "u": user_id,
+            },
+        ).mappings().one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+    return dict(row)
 
 
 # ── Favoris ────────────────────────────────────────────────────────
