@@ -1,14 +1,15 @@
 import { Link } from 'react-router-dom'
-import { usePlaceImage } from '../lib/usePlaceImage'
+import { usePlaceGallery } from '../lib/usePlaceImage'
 import { useAuth } from '../lib/auth.jsx'
 import { ecoScore } from '../lib/eco'
 import { formatPlaceName } from '../lib/format'
 import Icon from './Icon'
+import PhotoCarousel from './PhotoCarousel'
 
 export default function DestinationCard({ dest }) {
   const ville = formatPlaceName(dest.commune || dest.nom_gare)
-  // Photo Wikipedia uniquement. Pas de repli Picsum aleatoire.
-  const img = usePlaceImage(dest.commune || dest.nom_gare, null)
+  // Jusqu'a 3 photos Wikipedia qui alternent en fondu.
+  const gallery = usePlaceGallery(dest.commune || dest.nom_gare)
   const { user, isFavorite, toggleFavorite } = useAuth()
   const fav = isFavorite(dest.nom_gare)
   const eco = ecoScore(dest)
@@ -19,15 +20,9 @@ export default function DestinationCard({ dest }) {
       className="group block overflow-hidden rounded-2xl border border-line bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md"
     >
       <div className="relative h-52 overflow-hidden bg-gradient-to-br from-eco/5 to-eco/15">
-        {img ? (
-          <img
-            src={img}
-            alt={ville}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-          />
+        {gallery.length > 0 ? (
+          <PhotoCarousel images={gallery} alt={ville} interval={3200} />
         ) : (
-          // Placeholder sobre : degrade vert eco doux + icone train + nom
           <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
             <Icon name="train" className="h-10 w-10 text-eco/50" strokeWidth={1.5} />
             <div className="text-sm font-semibold text-eco/70">{ville}</div>

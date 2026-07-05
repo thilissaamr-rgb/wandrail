@@ -61,6 +61,8 @@ export const api = {
   // Authentification
   register: (payload) => send('POST', '/api/auth/register', payload),
   login: (payload) => send('POST', '/api/auth/login', payload),
+  profile: () => get('/api/profile', true),
+  updateProfile: (payload) => send('PATCH', '/api/profile', payload),
 
   // Favoris
   favorites: () => get('/api/favorites', true),

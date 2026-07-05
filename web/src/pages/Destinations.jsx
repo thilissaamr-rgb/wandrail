@@ -20,7 +20,6 @@ export default function Destinations() {
   const categorie = searchParams.get('categorie') || ''
   const voyageur = searchParams.get('voyageur') || ''
   const sort = searchParams.get('sort') || 'score'
-  const hasFilters = q || departement || profil || categorie || voyageur || sort !== 'score'
 
   const setParam = (key, value) => {
     const next = new URLSearchParams(searchParams)
@@ -36,8 +35,6 @@ export default function Destinations() {
 
   useEffect(() => {
     setLoading(true)
-    // Type de voyageur -> recommandations (modele par profil), filtrees cote
-    // client par departement / recherche / tri. Sinon, recherche serveur.
     const source = voyageur
       ? api.recommandations(voyageur)
       : api.destinations({ q, departement, profil, categorie, sort, limit: 60 })
@@ -47,15 +44,15 @@ export default function Destinations() {
         if (!voyageur) return setDests(rows)
         let out = rows
         if (q) {
-          const t = q.toLowerCase()
+          const term = q.toLowerCase()
           out = out.filter(
-            (d) =>
-              (d.commune || '').toLowerCase().includes(t) ||
-              (d.nom_gare || '').toLowerCase().includes(t),
+            (item) =>
+              (item.commune || '').toLowerCase().includes(term) ||
+              (item.nom_gare || '').toLowerCase().includes(term),
           )
         }
-        if (departement) out = out.filter((d) => d.departement === departement)
-        const cmp = {
+        if (departement) out = out.filter((item) => item.departement === departement)
+        const comparator = {
           score: (a, b) =>
             a.rang && b.rang
               ? a.rang - b.rang
@@ -63,127 +60,121 @@ export default function Destinations() {
           nom: (a, b) => (a.commune || '').localeCompare(b.commune || ''),
           poi: (a, b) => (b.nb_poi_5km || 0) - (a.nb_poi_5km || 0),
         }[sort]
-        setDests([...out].sort(cmp))
+        setDests([...out].sort(comparator))
       })
       .catch(() => setDests([]))
       .finally(() => setLoading(false))
   }, [q, departement, profil, categorie, voyageur, sort])
 
-  const selCls =
-    'h-11 w-full rounded-xl border-[1.5px] border-line bg-card px-3 text-sm text-ink outline-none focus:border-violet'
+  const fieldClass =
+    'h-11 w-full rounded-xl border border-line bg-card2 px-4 text-sm text-ink outline-none focus:border-eco'
 
   return (
     <div className="mx-auto max-w-page px-6 py-10">
-      <h1 className="text-3xl font-black tracking-tighter text-ink">Toutes les destinations</h1>
-      <p className="mt-1 text-sm text-muted">Filtrez par département, profil ou recherchez une ville.</p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-ink">Destinations</h1>
+        <p className="mt-1 text-sm text-muted">Recherche et filtres sur le catalogue national.</p>
+      </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr]">
-        {/* Filtres - colonne laterale */}
-        <aside className="h-fit space-y-5 rounded-2xl border border-line bg-card p-5 shadow-card lg:sticky lg:top-20">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black uppercase tracking-wide text-ink">Filtres</h2>
-            {hasFilters && (
-              <button
-                onClick={() => setSearchParams({})}
-                className="text-xs font-semibold text-violet hover:underline"
-              >
-                Réinitialiser
-              </button>
-            )}
-          </div>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
+        <aside className="h-fit rounded-2xl border border-line bg-card p-5">
+          <div className="space-y-4">
+            <Field label="Recherche">
+              <input
+                value={q}
+                onChange={(e) => setParam('q', e.target.value)}
+                placeholder="Ville ou gare"
+                className={fieldClass}
+              />
+            </Field>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-muted">Envie principale</label>
-            <select value={categorie} onChange={(e) => setParam('categorie', e.target.value)} className={selCls}>
-              <option value="">Toutes les envies</option>
-              {CATEGORIES.map((value) => <option key={value} value={value}>{value}</option>)}
-            </select>
-          </div>
+            <Field label="Département">
+              <select value={departement} onChange={(e) => setParam('departement', e.target.value)} className={fieldClass}>
+                <option value="">Tous</option>
+                {deps.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-muted">Recherche</label>
-            <input
-              value={q}
-              onChange={(e) => setParam('q', e.target.value)}
-              placeholder="Une ville..."
-              className="h-11 w-full rounded-xl border-[1.5px] border-line bg-card2 px-4 text-sm text-ink outline-none focus:border-violet"
-            />
-          </div>
+            <Field label="Voyageur">
+              <select value={voyageur} onChange={(e) => setParam('voyageur', e.target.value)} className={fieldClass}>
+                <option value="">Tous</option>
+                {VOYAGEURS.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-muted">Type de voyageur</label>
-            <select value={voyageur} onChange={(e) => setParam('voyageur', e.target.value)} className={selCls}>
-              <option value="">Tous les voyageurs</option>
-              {VOYAGEURS.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </div>
+            <Field label="Catégorie">
+              <select value={categorie} onChange={(e) => setParam('categorie', e.target.value)} className={fieldClass}>
+                <option value="">Toutes</option>
+                {CATEGORIES.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-muted">Département</label>
-            <select value={departement} onChange={(e) => setParam('departement', e.target.value)} className={selCls}>
-              <option value="">Tous les départements</option>
-              {deps.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
+            <Field label="Profil">
+              <select value={profil} onChange={(e) => setParam('profil', e.target.value)} className={fieldClass}>
+                <option value="">Tous</option>
+                {profils.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-muted">Profil touristique</label>
-            <select value={profil} onChange={(e) => setParam('profil', e.target.value)} className={selCls}>
-              <option value="">Tous les profils</option>
-              {profils.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-muted">Trier par</label>
-            <select value={sort} onChange={(e) => setParam('sort', e.target.value)} className={selCls}>
-              <option value="score">Score d'attractivité</option>
-              <option value="nom">Nom (A-Z)</option>
-              <option value="poi">Nombre d'activités</option>
-            </select>
+            <Field label="Tri">
+              <select value={sort} onChange={(e) => setParam('sort', e.target.value)} className={fieldClass}>
+                <option value="score">Score</option>
+                <option value="nom">Nom</option>
+                <option value="poi">Activités</option>
+              </select>
+            </Field>
           </div>
         </aside>
 
-        {/* Resultats */}
         <div>
-          <div className="mb-5 text-sm font-semibold text-ink">
-            {loading
-              ? 'Recherche en cours...'
-              : `${dests.length} destination${dests.length > 1 ? 's' : ''}`}
-            {voyageur && !loading && (
-              <span className="ml-2 font-normal text-muted">- recommandées pour un voyage {voyageur}</span>
-            )}
+          <div className="mb-5 text-sm text-muted">
+            {loading ? 'Chargement...' : `${dests.length} résultat${dests.length > 1 ? 's' : ''}`}
           </div>
 
           {loading ? (
             <SkeletonGrid count={6} />
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {dests.map((d) => (
-                <DestinationCard key={d.nom_gare} dest={d} />
+              {dests.map((item) => (
+                <DestinationCard key={item.nom_gare} dest={item} />
               ))}
             </div>
           )}
 
           {!loading && dests.length === 0 && (
-            <div className="py-20 text-center text-muted">
-              Aucune destination ne correspond à ces critères.
+            <div className="rounded-2xl border border-line bg-card px-6 py-16 text-center text-sm text-muted">
+              Aucun résultat.
             </div>
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+        {label}
+      </label>
+      {children}
     </div>
   )
 }

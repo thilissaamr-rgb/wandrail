@@ -1,50 +1,40 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
 const tabs = [
-  { to: '/analyste', label: 'Vue d’ensemble', end: true },
-  { to: '/analyste/data-quality', label: 'Qualité des données' },
-  { to: '/analyste/pipeline', label: 'Pipeline' },
-  { to: '/analyste/ml', label: 'Modèles' },
+  { to: '/analyste', label: 'Impact', end: true },
   { to: '/analyste/decision', label: 'Territoires' },
+  { to: '/analyste/ml', label: 'Recommandations' },
 ]
 
 export default function AnalystLayout() {
   return (
-    <div>
-      {/* En-tete sobre : fond blanc, texte noir, sans gradient */}
-      <section className="border-b border-line bg-card">
-        <div className="mx-auto max-w-page px-6 py-8">
-          <h1 className="text-2xl font-black tracking-tight text-ink sm:text-3xl">
-            Tableau de bord
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-            Statistiques et indicateurs de la plateforme Wandrail : qualité des données, pipeline,
-            modèles et territoires accessibles en train.
-          </p>
+    <div className="min-h-screen">
+      {/* En-tete simple, coherent avec le reste de l'app (fond clair) */}
+      <div className="sticky top-16 z-20 border-b border-line bg-card/95 backdrop-blur">
+        <div className="mx-auto max-w-page px-6">
+          <div className="flex items-baseline gap-3 py-4">
+            <h1 className="text-2xl font-black tracking-tight text-ink">Analyse</h1>
+            <span className="text-sm text-muted">Indicateurs et recommandations</span>
+          </div>
+          <nav className="flex gap-2 pb-3" aria-label="Navigation analyste">
+            {tabs.map((tab) => (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                end={tab.end}
+                className={({ isActive }) =>
+                  `rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    isActive
+                      ? 'bg-eco text-white'
+                      : 'bg-card2 text-muted hover:bg-eco/10 hover:text-eco'
+                  }`
+                }
+              >
+                {tab.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-      </section>
-
-      {/* Onglets simples, style Notion */}
-      <div className="sticky top-16 z-40 border-b border-line bg-card/95 backdrop-blur">
-        <nav
-          className="no-scrollbar mx-auto flex max-w-page gap-1 overflow-x-auto px-4 sm:px-6"
-          aria-label="Navigation analyste"
-        >
-          {tabs.map((tab) => (
-            <NavLink
-              key={tab.to}
-              to={tab.to}
-              end={tab.end}
-              className={({ isActive }) =>
-                `whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold transition ${
-                  isActive ? 'border-eco text-eco' : 'border-transparent text-muted hover:text-ink'
-                }`
-              }
-            >
-              {tab.label}
-            </NavLink>
-          ))}
-        </nav>
       </div>
 
       <Outlet />

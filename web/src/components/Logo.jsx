@@ -1,4 +1,5 @@
-export default function Logo({ textClass = 'text-2xl', showBaseline = false }) {
+// Baseline affichee par defaut sous le nom (celle demandee par Thilissa).
+export default function Logo({ textClass = 'text-2xl', showBaseline = true }) {
   return (
     <span className="inline-flex items-center gap-2.5">
       <span className="relative h-11 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5">

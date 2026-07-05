@@ -2,10 +2,6 @@
 export const HERO_IMAGE =
   'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg/1280px-TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg'
 
-// Mapping image par destination.
-// On utilise picsum.photos avec des IDs choisis pour ressembler aux villes.
-// Cle = mot present dans le nom de la commune/gare (en minuscules).
-
 const DEST_IMG = {
   saumur: 40,
   'le mans': 175,
@@ -25,7 +21,6 @@ const DEST_IMG = {
   'fontenay-le-comte': 826,
 }
 
-// IDs de secours de bonne qualite (paysages / villes).
 const FALLBACK_IDS = [
   175, 100, 103, 192, 181, 130, 116, 169, 76, 74, 583, 248, 379, 431, 592, 826,
 ]
@@ -36,8 +31,6 @@ function hashString(str) {
   return sum
 }
 
-// Image (vignette) pour un lieu / activite. Seed stable base sur la
-// categorie + le nom : chaque lieu a une image constante et unique.
 export function poiImage(categorie, nom, w = 600, h = 360) {
   const seed =
     `${categorie || 'lieu'}-${nom || ''}`
@@ -50,9 +43,9 @@ export function poiImage(categorie, nom, w = 600, h = 360) {
 export function destImage(nom, w = 800, h = 500) {
   const key = String(nom || '').toLowerCase()
   let id = null
-  for (const [k, v] of Object.entries(DEST_IMG)) {
-    if (key.includes(k)) {
-      id = v
+  for (const [label, value] of Object.entries(DEST_IMG)) {
+    if (key.includes(label)) {
+      id = value
       break
     }
   }

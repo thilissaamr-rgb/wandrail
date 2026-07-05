@@ -65,6 +65,13 @@ export function AuthProvider({ children }) {
     setFavorites(new Set())
   }
 
+  const updateAccount = async (payload) => {
+    const updated = await api.updateProfile(payload)
+    const merged = { ...user, ...updated }
+    persist(merged)
+    return merged
+  }
+
   const isFavorite = (nomGare) => favorites.has(nomGare)
 
   const toggleFavorite = async (nomGare) => {
@@ -84,7 +91,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, favorites, isFavorite, toggleFavorite }}
+      value={{ user, login, register, logout, updateAccount, favorites, isFavorite, toggleFavorite }}
     >
       {children}
     </AuthContext.Provider>

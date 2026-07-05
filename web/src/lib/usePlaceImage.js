@@ -22,7 +22,7 @@ function fetchPlaceImage(commune) {
       const thumb = d && d.thumbnail
       let url = null
       if (orig && orig.source && (orig.width || 0) <= 2600) url = orig.source
-      else if (thumb && thumb.source) url = thumb.source
+      else if (thumb && thumb.source) url = thumb.source.replace(/\/\d+px-/, '/1280px-')
       else if (orig && orig.source) url = orig.source
       cache.set(key, url)
       return url
@@ -49,4 +49,72 @@ export function usePlaceImage(commune, fallback) {
     }
   }, [commune, fallback])
   return url
+}
+
+// Recupere jusqu'a 3 images differentes pour une commune :
+// 1. Image de l'article Wikipedia FR
+// 2-3. Images de la meme page (via l'API MediaWiki "pageimages")
+// Cache module pour ne pas refaire deux fois.
+const multiCache = new Map()
+
+async function fetchPlaceGallery(commune) {
+  const key = String(commune || '').toLowerCase().trim()
+  if (!key) return []
+  if (multiCache.has(key)) {
+    const hit = multiCache.get(key)
+    return hit instanceof Promise ? await hit : hit
+  }
+  const title = wikipediaPlace(key)
+  const p = (async () => {
+    // 1. photo principale
+    const main = await fetchPlaceImage(commune)
+    const gallery = main ? [main] : []
+    // 2. autres images de la page via l'API images
+    try {
+      const url = `https://fr.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=images&imlimit=15&titles=${encodeURIComponent(title)}`
+      const r = await fetch(url)
+      const j = await r.json()
+      const page = Object.values(j?.query?.pages || {})[0]
+      const files = (page?.images || [])
+        .map((im) => im.title)
+        .filter((t) => /\.(jpe?g|png|webp)$/i.test(t))
+        .filter((t) => !/(commons-logo|icon|flag|blason|logo|carte|map)/i.test(t))
+        .slice(0, 5)
+      for (const file of files) {
+        if (gallery.length >= 3) break
+        try {
+          const info = await fetch(
+            `https://fr.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url&iiurlwidth=1280&titles=${encodeURIComponent(file)}`
+          ).then((r) => r.json())
+          const infoPage = Object.values(info?.query?.pages || {})[0]
+          const src = infoPage?.imageinfo?.[0]?.thumburl || infoPage?.imageinfo?.[0]?.url
+          if (src && !gallery.includes(src)) gallery.push(src)
+        } catch {
+          /* ignore */
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    const result = gallery.slice(0, 3)
+    multiCache.set(key, result)
+    return result
+  })()
+  multiCache.set(key, p)
+  return await p
+}
+
+export function usePlaceGallery(commune) {
+  const [images, setImages] = useState([])
+  useEffect(() => {
+    let cancelled = false
+    setImages([])
+    fetchPlaceGallery(commune).then((imgs) => {
+      if (!cancelled) setImages(imgs)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [commune])
+  return images
 }

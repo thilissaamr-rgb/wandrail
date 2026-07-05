@@ -16,6 +16,7 @@ export default function Navbar() {
     { to: '/', label: 'Accueil', end: true },
     { to: '/destinations', label: 'Explorer' },
     { to: '/carte', label: 'Carte' },
+    { to: '/analyste', label: 'Analyste' },
   ]
 
   const linkClass = ({ isActive }) =>
@@ -57,10 +58,10 @@ export default function Navbar() {
               <Link
                 to="/profil"
                 aria-label="Mon compte"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-eco text-sm font-bold text-white transition hover:bg-eco-dark"
+                className="flex h-10 items-center gap-2 rounded-lg bg-eco px-2 text-sm font-semibold text-white transition hover:bg-eco-dark sm:px-3"
                 title={user.pseudo}
               >
-                {user.pseudo?.[0]?.toUpperCase() || 'U'}
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 font-bold">{user.pseudo?.[0]?.toUpperCase() || 'U'}</span><span className="hidden sm:inline">Mon espace</span>
               </Link>
             ) : (
               <button

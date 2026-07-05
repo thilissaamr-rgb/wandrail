@@ -4,21 +4,20 @@
 
 /* Tokens de theme : clair par defaut, sombre via .dark sur <html> */
 :root {
-  /* Palette pro type Rome2Rio / Doctolib : blanc pur, gris subtils, texte noir */
   --bg: 255 255 255;
   --card: 255 255 255;
-  --card2: 248 249 250;   /* #F8F9FA gris tres subtil pour separer sans salir */
-  --text: 17 24 39;       /* gris tres fonce plutot que noir pur (lecture) */
-  --muted: 107 114 128;   /* gris moyen pour secondaire */
+  --card2: 246 247 245;
+  --text: 16 24 24;
+  --muted: 103 112 118;
   --line: rgba(17, 24, 39, 0.08);
 }
 .dark {
-  --bg: 15 17 21;
-  --card: 22 25 32;
-  --card2: 32 36 44;
-  --text: 240 243 247;
-  --muted: 156 163 175;
-  --line: rgba(255, 255, 255, 0.10);
+  --bg: 0 0 0;
+  --card: 10 10 10;
+  --card2: 19 19 19;
+  --text: 244 245 241;
+  --muted: 150 154 156;
+  --line: rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
@@ -30,6 +29,9 @@
   body {
     @apply bg-bg text-ink font-sans;
     transition: background-color 0.3s ease, color 0.3s ease;
+    background-image:
+      radial-gradient(circle at top left, rgba(10, 92, 54, 0.05), transparent 26%),
+      radial-gradient(circle at bottom right, rgba(10, 92, 54, 0.04), transparent 22%);
   }
   h1, h2, h3 {
     @apply font-display;
