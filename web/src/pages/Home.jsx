@@ -154,7 +154,7 @@ export default function Home() {
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 to-transparent" />
             </div>
 
-            <div className="relative flex min-h-[560px] flex-col justify-end p-6 sm:p-10">
+            <div className="relative z-10 flex min-h-[560px] flex-col justify-end p-6 sm:p-10">
               <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm ring-1 ring-white/20">
                 <Icon name="train" className="h-3.5 w-3.5" />
                 Votre prochaine aventure commence sur les rails
