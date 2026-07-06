@@ -64,6 +64,7 @@ Wandrail_*.zip
 .sixth/
 tmp/
 notebooks/
+.claude/
 
 # ── Dumps SQL lourds (base rejouable via scripts/) ──────────────
 data/dumps/*.sql
