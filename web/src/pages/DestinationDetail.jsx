@@ -12,6 +12,7 @@ import {
 import L from 'leaflet'
 import { api } from '../lib/api'
 import { destImage } from '../lib/images'
+import { poiFallbackImage } from '../lib/poiImages'
 import { usePlaceImage } from '../lib/usePlaceImage'
 import { useTheme } from '../lib/theme.jsx'
 import { generateTravelSummary } from '../lib/ticket'
@@ -331,7 +332,9 @@ export default function DestinationDetail() {
     // On n'affiche l'image QUE si une vraie image DATAtourisme est fournie.
     // Sinon on garde le placeholder categorie (fond doux + icone) : pas de
     // Picsum aleatoire qui casse la credibilite.
-    const hasImage = Boolean(p.image_url && p.image_url.startsWith('http'))
+    const hasRealImage = Boolean(p.image_url && p.image_url.startsWith('http'))
+    // Fallback : photo Wikimedia par categorie (deterministe par nom du lieu).
+    const displayImage = hasRealImage ? p.image_url : poiFallbackImage(p.categorie, p.nom)
     return (
       <button
         key={key}
@@ -342,12 +345,12 @@ export default function DestinationDetail() {
       >
         <div className="relative flex h-28 items-center justify-center overflow-hidden bg-gradient-to-br from-eco/5 to-eco/15 text-eco">
           <Icon name={iconName} className="h-9 w-9 opacity-60" strokeWidth={1.5} />
-          {hasImage && (
+          {displayImage && (
             <img
-              src={p.image_url}
+              src={displayImage}
               alt={nom}
               loading="lazy"
-              title={p.image_credit || 'Photo DATAtourisme'}
+              title={p.image_credit || (hasRealImage ? 'Photo DATAtourisme' : 'Illustration Wikimedia Commons')}
               onError={(event) => { event.currentTarget.style.display = 'none' }}
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
