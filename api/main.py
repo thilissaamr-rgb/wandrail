@@ -25,6 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from db import engine
 from analyst import build_decision_support, build_ml_metrics, build_overview, build_pipeline
+from navitia import next_departures
 from quality import build_data_quality_report
 from security import create_access_token, current_user_id, hash_password, verify_password
 
@@ -352,6 +353,19 @@ def destination_detail(nom_gare: str, rayon: float = Query(10.0, ge=0.5, le=50))
         dest = dict(zip(cols, dest_row))
         pois = rows_to_dicts(conn.execute(sql_poi, {"nom": nom_gare, "rayon": rayon}))
     return {"destination": dest, "pois": pois}
+
+
+@app.get("/api/destinations/{nom_gare}/schedules")
+def destination_schedules(nom_gare: str, count: int = Query(8, ge=1, le=20)):
+    """Prochains departs SNCF temps reel via API Navitia (cache 5 min)."""
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT code_uic FROM silver.gares WHERE nom_gare = :n LIMIT 1"),
+            {"n": nom_gare},
+        ).fetchone()
+    if row is None or not row[0]:
+        return {"available": False, "departures": [], "error": "gare inconnue"}
+    return next_departures(row[0], count=count)
 
 
 @app.get("/api/recommandations/{profil}")

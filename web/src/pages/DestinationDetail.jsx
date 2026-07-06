@@ -108,6 +108,7 @@ export default function DestinationDetail() {
   const [selected, setSelected] = useState([]) // noms de lieux selectionnes
   const [ticketBusy, setTicketBusy] = useState(false)
   const [weather, setWeather] = useState(null)
+  const [schedules, setSchedules] = useState(null)
 
   // Chargement de la destination + restauration de l'itineraire sauvegarde.
   useEffect(() => {
@@ -120,6 +121,9 @@ export default function DestinationDetail() {
       setSelected([])
     }
     api.destination(nom).then(setData).catch(() => setError(true))
+    // Horaires SNCF Navitia (endpoint indépendant : ne bloque pas la fiche)
+    setSchedules(null)
+    api.schedules(nom, 6).then(setSchedules).catch(() => setSchedules({ available: false, departures: [] }))
   }, [nom])
 
   useEffect(() => {
@@ -588,6 +592,57 @@ export default function DestinationDetail() {
               <div className="bg-violet/5 p-3 text-center text-sm font-bold text-violet">
                 En train : {co2Saved.toFixed(0)} kg de CO2 economises (~91% de moins)
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Prochains trains SNCF (Navitia temps réel) */}
+        {schedules?.available && schedules.departures?.length > 0 && (
+          <div className="mt-10">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-eco/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-eco">
+                  <Icon name="train" className="h-3 w-3" />
+                  Temps réel · Navitia
+                </div>
+                <h2 className="mt-2 text-2xl font-black tracking-tighter text-ink">Prochains trains au départ</h2>
+                <p className="mt-1 text-sm text-muted">Horaires officiels SNCF, mis à jour toutes les 5 minutes.</p>
+              </div>
+              <span className="text-[10px] font-semibold text-muted">
+                Gare : {ville}
+              </span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {schedules.departures.map((dep, i) => {
+                const min = dep.departure?.in_minutes
+                const urgent = min != null && min <= 5
+                const soon = min != null && min <= 20
+                return (
+                  <div
+                    key={i}
+                    className={`rounded-2xl border p-4 transition ${urgent ? 'border-rose-300 bg-rose-50 dark:border-rose-900/50 dark:bg-rose-950/30' : soon ? 'border-amber-300 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30' : 'border-line bg-card'}`}
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-2xl font-black tracking-tight text-ink">
+                        {dep.departure?.hour || '—'}
+                      </span>
+                      {min != null && (
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${urgent ? 'bg-rose-500 text-white' : soon ? 'bg-amber-500 text-white' : 'bg-eco/15 text-eco'}`}>
+                          {min === 0 ? "à l'instant" : `dans ${min} min`}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 truncate text-sm font-bold text-ink" title={dep.direction}>
+                      → {dep.direction || 'Direction —'}
+                    </div>
+                    <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted">
+                      <Icon name="train" className="h-3 w-3" />
+                      {dep.commercial_mode || dep.network || 'SNCF'}
+                      {dep.trip_short_name && <span className="rounded bg-card2 px-1.5 py-0.5 font-mono text-[10px] font-bold">{dep.trip_short_name}</span>}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}

@@ -56,6 +56,8 @@ export const api = {
   },
   destination: (nom, rayon) =>
     get(`/api/destinations/${encodeURIComponent(nom)}${rayon ? `?rayon=${rayon}` : ''}`),
+  schedules: (nom, count = 8) =>
+    get(`/api/destinations/${encodeURIComponent(nom)}/schedules?count=${count}`),
   recommandations: (profil) => get(`/api/recommandations/${encodeURIComponent(profil)}`),
 
   // Authentification
