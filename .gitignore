@@ -63,6 +63,7 @@ Wandrail_*.zip
 # ── Dossiers de travail temporaires ─────────────────────────────
 .sixth/
 tmp/
+notebooks/
 
 # ── Dumps SQL lourds (base rejouable via scripts/) ──────────────
 data/dumps/*.sql
