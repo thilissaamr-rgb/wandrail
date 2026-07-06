@@ -48,6 +48,15 @@ desktop.ini
 notebooks/.ipynb_checkpoints/
 # ── Logs ────────────────────────────────────────────────────────
 *.log
+*_out.txt
+*_err.txt
+
+# ── Streamlit (abandonné - peut contenir secrets.toml) ──────────
+.streamlit/
+app/
+
+# ── Backups zip locaux ──────────────────────────────────────────
+Wandrail_*.zip
 
 # ── MLflow ──────────────────────────────────────────────────────
 mlruns/
