@@ -13,7 +13,7 @@ import L from 'leaflet'
 import { api } from '../lib/api'
 import { destImage } from '../lib/images'
 import { poiFallbackImage } from '../lib/poiImages'
-import { usePlaceImage } from '../lib/usePlaceImage'
+import { usePlaceImage, usePlaceGallery } from '../lib/usePlaceImage'
 import { useTheme } from '../lib/theme.jsx'
 import { generateTravelSummary } from '../lib/ticket'
 import { ecoScore, ecoColor, ecoLabel } from '../lib/eco'
@@ -110,6 +110,8 @@ export default function DestinationDetail() {
   const [ticketBusy, setTicketBusy] = useState(false)
   const [weather, setWeather] = useState(null)
   const [schedules, setSchedules] = useState(null)
+  // Galerie photos Wikipedia de la commune (partagee entre hero + POI cards)
+  const communeGallery = usePlaceGallery(data?.destination?.commune || nom)
 
   // Chargement de la destination + restauration de l'itineraire sauvegarde.
   useEffect(() => {
@@ -173,9 +175,12 @@ export default function DestinationDetail() {
   // Photo Wikipedia UNIQUEMENT. Pas de repli Picsum aleatoire.
   const heroImg = usePlaceImage(communeName, null)
   const { dark } = useTheme()
+  // Tiles style "Voyager" CartoDB : rendu proche de Google Maps
+  // (routes marquees, labels contrastes, POI reperables) — plus lisible
+  // que le style Light minimaliste. Dark mode : DarkMatter.
   const tileUrl = dark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
 
   const cats = useMemo(
     () => ['Tout', ...new Set(pois.map((p) => p.categorie).filter(Boolean))],
@@ -333,8 +338,9 @@ export default function DestinationDetail() {
     // Sinon on garde le placeholder categorie (fond doux + icone) : pas de
     // Picsum aleatoire qui casse la credibilite.
     const hasRealImage = Boolean(p.image_url && p.image_url.startsWith('http'))
-    // Fallback : photo Wikimedia par categorie (deterministe par nom du lieu).
-    const displayImage = hasRealImage ? p.image_url : poiFallbackImage(p.categorie, p.nom)
+    // Fallback : photo de la commune (galerie Wikipedia deja chargee)
+    // Chaque POI d une meme ville partage le contexte visuel, choix stable par hash.
+    const displayImage = hasRealImage ? p.image_url : poiFallbackImage(communeGallery, p.nom)
     return (
       <button
         key={key}
@@ -677,9 +683,9 @@ export default function DestinationDetail() {
 
         {/* Carte */}
         {d.latitude && d.longitude && (
-          <div className="mt-10">
+          <div id="itineraire-map" className="mt-10 scroll-mt-24">
             <h2 className="mb-4 text-2xl font-black tracking-tighter text-ink">Carte des environs</h2>
-            <div className="h-[420px] overflow-hidden rounded-2xl border border-line">
+            <div className="h-[480px] overflow-hidden rounded-2xl border border-line shadow-sm">
               <MapContainer center={center} zoom={13} className="h-full w-full" scrollWheelZoom={true}>
                 <TileLayer key={dark ? 'dark' : 'light'} attribution='&copy; OpenStreetMap' url={tileUrl} />
                 <Circle center={center} radius={2000} pathOptions={{ color: '#7c3aed', fillOpacity: 0.05 }} />
@@ -812,18 +818,21 @@ export default function DestinationDetail() {
                       </div>
                     ))}
                   </ol>
-                  {directionsUrl && (
-                    <a
-                      href={directionsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {itinPoints.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const mapEl = document.getElementById('itineraire-map')
+                        if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-violet py-2.5 text-sm font-bold text-white transition hover:bg-violet-dark"
                     >
-                      Demarrer l'itineraire
-                    </a>
+                      <Icon name="map" className="h-4 w-4" />
+                      Voir l'itinéraire sur la carte
+                    </button>
                   )}
                   <p className="mt-1.5 text-center text-[0.68rem] text-muted">
-                    Ouvre la navigation a pied dans Google Maps
+                    Tracé piéton calculé par OpenStreetMap, affiché directement dans l'application
                   </p>
                   <button
                     onClick={() => updateSelected([])}
