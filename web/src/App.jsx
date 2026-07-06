@@ -22,6 +22,7 @@ const AnalystDecision = lazy(() => import('./pages/analyste/Decision'))
 const AnalystTourisme = lazy(() => import('./pages/analyste/Tourisme'))
 const AnalystCarbone = lazy(() => import('./pages/analyste/Carbone'))
 const AnalystProfils = lazy(() => import('./pages/analyste/Profils'))
+const AnalystJustification = lazy(() => import('./pages/analyste/Justification'))
 
 export default function App() {
   const location = useLocation()
@@ -53,6 +54,7 @@ export default function App() {
                 <Route path="carbone" element={<AnalystCarbone />} />
                 <Route path="profils" element={<AnalystProfils />} />
                 <Route path="decision" element={<AnalystDecision />} />
+                <Route path="justification" element={<AnalystJustification />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -7,6 +7,7 @@ const tabs = [
   { to: '/analyste/profils', label: 'Profils' },
   { to: '/analyste/decision', label: 'Territoires' },
   { to: '/analyste/ml', label: 'Machine Learning' },
+  { to: '/analyste/justification', label: 'Justification', highlight: true },
 ]
 
 export default function AnalystLayout() {
@@ -28,12 +29,17 @@ export default function AnalystLayout() {
                 className={({ isActive }) =>
                   `rounded-full px-4 py-2 text-sm font-semibold transition ${
                     isActive
-                      ? 'bg-eco text-white'
-                      : 'bg-card2 text-muted hover:bg-eco/10 hover:text-eco'
+                      ? tab.highlight
+                        ? 'bg-violet text-white shadow-md shadow-violet/20'
+                        : 'bg-eco text-white'
+                      : tab.highlight
+                        ? 'bg-violet/10 text-violet hover:bg-violet/20'
+                        : 'bg-card2 text-muted hover:bg-eco/10 hover:text-eco'
                   }`
                 }
               >
                 {tab.label}
+                {tab.highlight && <span className="ml-1.5 text-[9px] font-black opacity-70">NEW</span>}
               </NavLink>
             ))}
           </nav>

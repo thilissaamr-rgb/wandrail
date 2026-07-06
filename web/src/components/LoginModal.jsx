@@ -5,9 +5,10 @@ import { useAuth } from '../lib/auth.jsx'
 // Panneau de connexion latéral, branché sur l'API (userapp.users).
 export default function LoginModal({ open, onClose }) {
   const { login, register } = useAuth()
-  const [mode, setMode] = useState('login') // login | signup
+  const [mode, setMode] = useState('login') // login | signup | forgot
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [forgotOpen, setForgotOpen] = useState(false)
 
   const submit = async (e) => {
     e.preventDefault()
@@ -107,7 +108,11 @@ export default function LoginModal({ open, onClose }) {
                   Mot de passe
                 </label>
                 {mode === 'login' && (
-                  <button type="button" className="text-xs font-semibold text-violet hover:underline">
+                  <button
+                    type="button"
+                    onClick={() => setForgotOpen(true)}
+                    className="text-xs font-semibold text-violet hover:underline"
+                  >
                     Oublié ?
                   </button>
                 )}
@@ -151,6 +156,41 @@ export default function LoginModal({ open, onClose }) {
           </button>
         </div>
       </div>
+
+      {/* Sous-modale : mot de passe oublie */}
+      {forgotOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setForgotOpen(false)}
+        >
+          <div
+            className="mx-4 w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet/10 text-2xl">
+              🔑
+            </div>
+            <h3 className="mt-4 text-lg font-black text-ink">Mot de passe oublié ?</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Pas de panique. Envoie un mail à l'adresse ci-dessous en précisant
+              ton adresse de connexion, on remet ton compte d'aplomb en 24 h.
+            </p>
+            <a
+              href="mailto:contact@wandrail.fr?subject=Réinitialisation%20mot%20de%20passe%20Wandrail"
+              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-violet px-4 text-sm font-bold text-white transition hover:bg-violet-dark"
+            >
+              contact@wandrail.fr
+            </a>
+            <button
+              type="button"
+              onClick={() => setForgotOpen(false)}
+              className="mt-3 w-full text-center text-xs font-semibold text-muted hover:text-ink"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
