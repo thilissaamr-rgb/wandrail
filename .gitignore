@@ -50,6 +50,8 @@ notebooks/.ipynb_checkpoints/
 *.log
 *_out.txt
 *_err.txt
+*_local_*.log
+*_local_*.txt
 
 # ── Streamlit (abandonné - peut contenir secrets.toml) ──────────
 .streamlit/
@@ -57,6 +59,13 @@ app/
 
 # ── Backups zip locaux ──────────────────────────────────────────
 Wandrail_*.zip
+
+# ── Dossiers de travail temporaires ─────────────────────────────
+.sixth/
+tmp/
+
+# ── Dumps SQL lourds (base rejouable via scripts/) ──────────────
+data/dumps/*.sql
 
 # ── MLflow ──────────────────────────────────────────────────────
 mlruns/

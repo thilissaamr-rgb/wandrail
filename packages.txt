@@ -1,3 +1,0 @@
-libpq-dev
-zlib1g-dev
-libjpeg-dev
