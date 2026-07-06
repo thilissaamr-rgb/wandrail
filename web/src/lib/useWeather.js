@@ -6,7 +6,10 @@ import { useEffect, useState } from 'react'
 
 const cache = new Map() // key: "lat,lon" -> Promise|Array
 
-const DAYS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+// Labels sémantiques : la meteo doit etre utile pour preparer un voyage,
+// pas seulement un week-end. On indique la fenetre relative a aujourd'hui.
+const RELATIVE = ["Aujourd'hui", 'Demain', 'Après-demain']
 
 function mapCode(code) {
   if (code == null) return 'cloud'
@@ -41,7 +44,8 @@ async function fetchWeather(lat, lon) {
         const date = new Date(iso)
         return {
           date: iso,
-          label: DAYS[date.getDay()],
+          label: RELATIVE[i] || `J+${i}`,
+          dayShort: DAYS_SHORT[date.getDay()],
           tempMax: Math.round(d.daily.temperature_2m_max[i]),
           tempMin: Math.round(d.daily.temperature_2m_min[i]),
           icon: mapCode(d.daily.weather_code[i]),

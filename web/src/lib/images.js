@@ -1,17 +1,28 @@
 // TGV Duplex sur la LGV Méditerranée — Alaric Favier, CC BY-SA 3.0.
+// Taille 1280px : verifiee comme pregeneree par Wikimedia (les autres tailles
+// peuvent renvoyer 400).
 export const HERO_IMAGE =
   'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg/1280px-TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg'
 
-// Trois panoramas ferroviaires pour le carrousel du Hero (Wikimedia + Unsplash).
-// Chaque photo montre un train dans un paysage remarquable, comme demande.
+// Trois panoramas ferroviaires pour le carrousel du Hero (Wikimedia).
+// URLs verifiees en 1280px.
 export const HERO_CAROUSEL = [
-  // TGV Duplex sur la LGV Mediterranee
   'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg/1280px-TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg',
-  // Viaduc de Garabit (train sur pont de pierre / paysage francais)
   'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Viaduc_de_Garabit_-_2015-08-14.jpg/1280px-Viaduc_de_Garabit_-_2015-08-14.jpg',
-  // Train de la Rhune / paysage montagne
   'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Train_de_La_Rhune_%28Pyr%C3%A9n%C3%A9es-Atlantiques%29.jpg/1280px-Train_de_La_Rhune_%28Pyr%C3%A9n%C3%A9es-Atlantiques%29.jpg',
 ]
+
+// Themes d'inspiration : chaque theme pointe vers un lieu iconique reel
+// dont l'image est chargee dynamiquement via l'API Wikipedia (usePlaceImage).
+// C'est plus fiable que des URLs Commons codees en dur (qui peuvent renvoyer 400).
+export const INSPIRATION_PLACES = {
+  nature: 'Forêt de Fontainebleau',
+  mer: 'Étretat',
+  patrimoine: 'Château de Chenonceau',
+  gastronomie: 'Lyon',
+  romantique: 'Bordeaux',
+  famille: 'Nantes',
+}
 
 const DEST_IMG = {
   saumur: 40,
