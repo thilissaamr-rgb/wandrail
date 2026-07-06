@@ -25,6 +25,8 @@ services:
         value: https://wandrail-web.onrender.com
       - key: AUTH_SECRET
         generateValue: true
+      - key: NAVITIA_TOKEN
+        sync: false        # cle API SNCF Navitia (numerique.sncf.com) — horaires temps reel
 
   # ── Front React (site statique) ────────────────────────────────
   - type: web

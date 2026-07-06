@@ -57,6 +57,7 @@ t7  = PythonOperator(task_id="ml_recommandation",      python_callable=lambda: r
 t8  = PythonOperator(task_id="isochrones_navitia",     python_callable=lambda: run_script("08_navitia.py"),    dag=dag)
 t9  = PythonOperator(task_id="evenements_openagenda",  python_callable=lambda: run_script("09_evenements.py"), dag=dag)
 t10 = PythonOperator(task_id="population_insee",       python_callable=lambda: run_script("10_insee.py"),      dag=dag)
+t13 = PythonOperator(task_id="navitia_gares_bronze",   python_callable=lambda: run_script("13_navitia_gares.py"), dag=dag)
 
 
 # ----------------------------------------------------------
@@ -64,11 +65,15 @@ t10 = PythonOperator(task_id="population_insee",       python_callable=lambda: r
 #
 #  t1 (gares) -> t2 (POI DT) -> t3 (OSM) -> t4 (Silver) -> t5 (Gold)
 #                                                        /    |    \
-#                                              t6 (KMeans) t7 (KNN) t8 (Navitia)
+#                                              t6 (KMeans) t7 (KNN) t8 (Navitia iso)
 #                                                            |
 #                                                       t10 (INSEE)
+#  t13 (Navitia gares Bronze) depend de t4 (Silver) : besoin de silver.gares
+#     pour connaitre les code_uic a interroger. Alimente bronze.navitia_gares_raw
+#     utilise en runtime par api/navitia.py.
 #  t9 (evenements) est independant du coeur analytique.
 # ----------------------------------------------------------
 
 t1 >> t2 >> t3 >> t4 >> t5 >> [t6, t7, t8]
+t4 >> t13
 t5 >> t10
