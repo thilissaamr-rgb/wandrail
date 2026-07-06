@@ -140,13 +140,18 @@ export default function Home() {
       {/* HERO */}
       <section className="mx-auto max-w-page px-4 pt-6 sm:px-6">
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="relative overflow-hidden rounded-[24px] bg-slate-900 shadow-sm">
+          <div className="relative overflow-hidden rounded-[24px] bg-slate-800 shadow-sm">
             <div className="absolute inset-0">
-              <PhotoCarousel images={HERO_CAROUSEL} alt="Voyager en train à travers la France" interval={5000} />
-              {/* Voile leger : la photo doit rester l'element principal.
-                  On lit le titre grace a un degrade tres discret en bas,
-                  quasi transparent en haut/milieu. */}
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/15 to-transparent" />
+              <PhotoCarousel
+                images={HERO_CAROUSEL}
+                alt="Voyager en train à travers de superbes paysages"
+                interval={6000}
+                kenBurns
+              />
+              {/* Voile ultra leger : la photo reste l element principal.
+                  Le titre a du drop-shadow pour rester lisible sans assombrir tout. */}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 to-transparent" />
             </div>
 
             <div className="relative flex min-h-[560px] flex-col justify-end p-6 sm:p-10">

@@ -1,16 +1,13 @@
-// TGV Duplex sur la LGV Méditerranée — Alaric Favier, CC BY-SA 3.0.
-// Taille 1280px : verifiee comme pregeneree par Wikimedia (les autres tailles
-// peuvent renvoyer 400).
-export const HERO_IMAGE =
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg/1280px-TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg'
-
-// Trois panoramas ferroviaires pour le carrousel du Hero (Wikimedia).
-// URLs verifiees en 1280px.
+// Hero : 4 panoramas ferroviaires sur CDN externes.
+// Choisies par l utilisatrice pour l effet "wow" en soutenance.
 export const HERO_CAROUSEL = [
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg/1280px-TGV_Duplex_274_%28LGV_M%C3%A9diterran%C3%A9e%2C_Bouches-du-Rh%C3%B4ne%2C_France%29.jpg',
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Viaduc_de_Garabit_-_2015-08-14.jpg/1280px-Viaduc_de_Garabit_-_2015-08-14.jpg',
-  'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Train_de_La_Rhune_%28Pyr%C3%A9n%C3%A9es-Atlantiques%29.jpg/1280px-Train_de_La_Rhune_%28Pyr%C3%A9n%C3%A9es-Atlantiques%29.jpg',
+  'https://images.partir.com/GYiIZtAtrFwJfOolUY_LwFNXl6M=/750x/filters:sharpen(0.3,0.3,true)/train/voyages-trains-insolites-bernina-express-3.jpg',
+  'https://www.groupevoyagesvp.ca/wp-content/uploads/2020/02/train-3396952_1280.jpg',
+  'https://www.abcdtrains.com/wp-content/uploads/2025/05/train-panoramique.jpg',
+  'https://static.cnews.fr/sites/default/files/styles/image_750_422/public/web_suisse_sts9980_5d72742700005.jpg?itok=o8NQEiHF',
 ]
+
+export const HERO_IMAGE = HERO_CAROUSEL[0]
 
 // Themes d'inspiration : chaque theme pointe vers un lieu iconique reel
 // dont l'image est chargee dynamiquement via l'API Wikipedia (usePlaceImage).
