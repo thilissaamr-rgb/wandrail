@@ -36,6 +36,30 @@ function fetchPlaceImage(commune) {
   return p
 }
 
+// Liste des grandes villes francaises qu on peut extraire d un nom de gare
+// (ex: "Lyon Saint-Paul" -> "Lyon", "Paris-Gare-de-Lyon" -> "Paris")
+const KNOWN_CITIES = [
+  'Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice', 'Nantes', 'Strasbourg',
+  'Montpellier', 'Bordeaux', 'Lille', 'Rennes', 'Reims', 'Toulon', 'Grenoble',
+  'Dijon', 'Angers', 'Nimes', 'Nîmes', 'Le Mans', 'Aix', 'Brest', 'Tours',
+  'Limoges', 'Clermont', 'Amiens', 'Orleans', 'Orléans', 'Metz', 'Nancy',
+  'Perpignan', 'Rouen', 'Caen', 'Mulhouse', 'Besançon', 'Besancon',
+]
+
+// Retourne une ville "de secours" a essayer si la commune initiale echoue
+// (utile pour les gares dont le nom n est pas une ville, ex "Saint-Michel
+// Notre-Dame" -> "Paris" via le departement).
+export function extractFallbackCity(nomGare, departement) {
+  const low = String(nomGare || '').toLowerCase()
+  for (const city of KNOWN_CITIES) {
+    if (low.includes(city.toLowerCase())) return city
+  }
+  const dep = String(departement || '').trim()
+  // Si le departement est directement le nom d une ville (Paris = 75)
+  if (KNOWN_CITIES.includes(dep)) return dep
+  return null
+}
+
 export function usePlaceImage(commune, fallback) {
   const [url, setUrl] = useState(fallback)
   useEffect(() => {
@@ -104,17 +128,27 @@ async function fetchPlaceGallery(commune) {
   return await p
 }
 
-export function usePlaceGallery(commune) {
+export function usePlaceGallery(commune, fallbackCommune) {
   const [images, setImages] = useState([])
   useEffect(() => {
     let cancelled = false
     setImages([])
-    fetchPlaceGallery(commune).then((imgs) => {
-      if (!cancelled) setImages(imgs)
+    fetchPlaceGallery(commune).then(async (imgs) => {
+      if (cancelled) return
+      if (imgs.length > 0) {
+        setImages(imgs)
+        return
+      }
+      // Repli : si la commune initiale ne donne rien (gare avec nom exotique),
+      // essayer la ville extraite ou le departement.
+      if (fallbackCommune && fallbackCommune !== commune) {
+        const fbImgs = await fetchPlaceGallery(fallbackCommune)
+        if (!cancelled) setImages(fbImgs)
+      }
     })
     return () => {
       cancelled = true
     }
-  }, [commune])
+  }, [commune, fallbackCommune])
   return images
 }

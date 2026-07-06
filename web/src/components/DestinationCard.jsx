@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { usePlaceGallery } from '../lib/usePlaceImage'
+import { usePlaceGallery, extractFallbackCity } from '../lib/usePlaceImage'
 import { useAuth } from '../lib/auth.jsx'
 import { ecoScore } from '../lib/eco'
 import { formatPlaceName } from '../lib/format'
@@ -33,7 +33,8 @@ function extractStats(dest) {
 
 export default function DestinationCard({ dest }) {
   const ville = formatPlaceName(dest.commune || dest.nom_gare)
-  const gallery = usePlaceGallery(dest.commune || dest.nom_gare)
+  const fallbackCity = extractFallbackCity(dest.nom_gare, dest.departement)
+  const gallery = usePlaceGallery(dest.commune || dest.nom_gare, fallbackCity)
   const { user, isFavorite, toggleFavorite } = useAuth()
   const fav = isFavorite(dest.nom_gare)
   const eco = ecoScore(dest)
