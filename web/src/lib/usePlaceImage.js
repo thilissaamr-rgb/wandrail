@@ -7,30 +7,67 @@ import { wikipediaPlace } from './format'
 
 const cache = new Map() // commune (minuscule) -> url | null | Promise
 
+// Villes ambigues connues qui necessitent le suffixe departement pour
+// distinguer de la page de desambiguisation Wikipedia.
+// Ex : 'Laval' -> 'Laval (Mayenne)', 'Saint-Denis' -> 'Saint-Denis (Seine-Saint-Denis)'
+const AMBIGUOUS_CITIES = {
+  laval: 'Laval (Mayenne)',
+  'saint-denis': 'Saint-Denis (Seine-Saint-Denis)',
+  'saint-louis': 'Saint-Louis (Haut-Rhin)',
+  'saint-etienne': 'Saint-Étienne',
+  'saint-paul': 'Saint-Paul (La Réunion)',
+  nice: 'Nice',
+  vichy: 'Vichy',
+  chalon: 'Chalon-sur-Saône',
+  epinal: 'Épinal',
+  auch: 'Auch',
+  albi: 'Albi',
+}
+
+async function fetchSummary(title) {
+  try {
+    const r = await fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`)
+    if (!r.ok) return null
+    return await r.json()
+  } catch {
+    return null
+  }
+}
+
+function extractImage(d) {
+  if (!d) return null
+  const orig = d.originalimage
+  const thumb = d.thumbnail
+  if (orig?.source && (orig.width || 0) <= 2600) return orig.source
+  if (thumb?.source) return thumb.source.replace(/\/\d+px-/, '/1280px-')
+  if (orig?.source) return orig.source
+  return null
+}
+
 function fetchPlaceImage(commune) {
   const key = String(commune || '').toLowerCase().trim()
   if (!key) return Promise.resolve(null)
   if (cache.has(key)) return Promise.resolve(cache.get(key))
 
-  const p = fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikipediaPlace(key))}`)
-    .then((r) => (r.ok ? r.json() : null))
-    .then((d) => {
-      // On prefere l'image originale (toujours servie, bonne qualite) tant
-      // qu'elle reste raisonnable ; sinon la vignette. Les tailles
-      // intermediaires generees a la volee par Wikimedia sont peu fiables.
-      const orig = d && d.originalimage
-      const thumb = d && d.thumbnail
-      let url = null
-      if (orig && orig.source && (orig.width || 0) <= 2600) url = orig.source
-      else if (thumb && thumb.source) url = thumb.source.replace(/\/\d+px-/, '/1280px-')
-      else if (orig && orig.source) url = orig.source
-      cache.set(key, url)
-      return url
-    })
-    .catch(() => {
-      cache.set(key, null)
-      return null
-    })
+  const p = (async () => {
+    // 1er essai : nom nettoye habituel
+    let d = await fetchSummary(wikipediaPlace(key))
+
+    // Si Wikipedia retourne une page de desambiguisation, retry avec le
+    // suffixe departement/region connu.
+    if (d?.type === 'disambiguation' || !extractImage(d)) {
+      const cleaned = key.replace(/[^a-zà-ÿ0-9\s-]/gi, '').trim()
+      const alt = AMBIGUOUS_CITIES[cleaned]
+      if (alt) {
+        const d2 = await fetchSummary(alt)
+        if (d2 && d2.type !== 'disambiguation') d = d2
+      }
+    }
+
+    const url = extractImage(d)
+    cache.set(key, url)
+    return url
+  })()
 
   cache.set(key, p) // memorise la promesse pour dedupliquer les appels simultanes
   return p
