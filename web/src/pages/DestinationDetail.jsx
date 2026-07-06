@@ -18,6 +18,7 @@ import { useTheme } from '../lib/theme.jsx'
 import { generateTravelSummary } from '../lib/ticket'
 import { ecoScore, ecoColor, ecoLabel } from '../lib/eco'
 import Icon, { iconSvg } from '../components/Icon'
+import { MobiliteCards, MobiliteList } from '../components/MobiliteCards'
 import { cleanPoiName, formatPlaceName } from '../lib/format'
 
 // Scenario de reference explicite pour la comparaison nationale train / voiture.
@@ -110,6 +111,8 @@ export default function DestinationDetail() {
   const [ticketBusy, setTicketBusy] = useState(false)
   const [weather, setWeather] = useState(null)
   const [schedules, setSchedules] = useState(null)
+  const [mobilites, setMobilites] = useState(null)
+  const [mobiliteTab, setMobiliteTab] = useState(null) // 'velo' | 'bus' | 'tram' | null
   // Galerie photos Wikipedia de la commune (partagee entre hero + POI cards)
   const communeGallery = usePlaceGallery(data?.destination?.commune || nom)
 
@@ -127,6 +130,10 @@ export default function DestinationDetail() {
     // Horaires SNCF Navitia (endpoint indépendant : ne bloque pas la fiche)
     setSchedules(null)
     api.schedules(nom, 6).then(setSchedules).catch(() => setSchedules({ available: false, departures: [] }))
+    // Mobilité locale (vélos / bus / tram / ferry autour de la gare)
+    setMobilites(null)
+    setMobiliteTab(null)
+    api.mobilites(nom, 2).then(setMobilites).catch(() => setMobilites({ totaux: {} }))
   }, [nom])
 
   useEffect(() => {
@@ -656,29 +663,28 @@ export default function DestinationDetail() {
           </div>
         )}
 
-        {/* Mobilité locale */}
+        {/* Mobilité locale — vraies données silver.mobilites */}
         <div className="mt-10">
           <h2 className="mb-1 text-2xl font-black tracking-tighter text-ink">Mobilité locale</h2>
-          <p className="mb-4 text-sm text-muted">Se déplacer autour de la gare, sans voiture.</p>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {[
-              { icon: 'pin', label: 'Centre-ville', value: '≤ 5 min à pied', chip: 'Accessible' },
-              { icon: 'activity', label: 'Vélos en libre-service', value: 'À proximité', chip: '≤ 300 m' },
-              { icon: 'train', label: 'Bus urbains', value: 'Arrêts autour de la gare', chip: 'Multi-lignes' },
-              { icon: 'leaf', label: 'Sans voiture', value: 'Séjour possible', chip: 'Bas carbone' },
-            ].map((m) => (
-              <div key={m.label} className="rounded-2xl border border-line bg-card p-4">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-eco/10 text-eco">
-                    <Icon name={m.icon} className="h-4 w-4" />
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{m.label}</span>
-                </div>
-                <div className="mt-2 text-sm font-bold text-ink">{m.value}</div>
-                <div className="mt-1 inline-block rounded-md bg-eco/10 px-2 py-0.5 text-[10px] font-bold text-eco">{m.chip}</div>
-              </div>
-            ))}
-          </div>
+          <p className="mb-4 text-sm text-muted">Se déplacer autour de la gare, sans voiture. Cliquez pour voir les stations.</p>
+          <MobiliteCards
+            mobilites={mobilites}
+            activeTab={mobiliteTab}
+            onSelectTab={setMobiliteTab}
+          />
+          {mobiliteTab && (
+            <MobiliteList
+              type={mobiliteTab}
+              stations={mobilites?.[mobiliteTab === 'velo' ? 'velos' : mobiliteTab === 'bus' ? 'bus' : mobiliteTab === 'tram' ? 'trams' : 'ferries'] || []}
+              onGoTo={(station) => {
+                // Ajoute la station comme étape dans l'itinéraire → OSRM trace la route
+                updateSelected([...(selected || []), station.nom_station])
+                const mapEl = document.getElementById('itineraire-map')
+                if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }}
+              onClose={() => setMobiliteTab(null)}
+            />
+          )}
         </div>
 
         {/* Carte */}

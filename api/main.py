@@ -355,6 +355,67 @@ def destination_detail(nom_gare: str, rayon: float = Query(10.0, ge=0.5, le=50))
     return {"destination": dest, "pois": pois}
 
 
+@app.get("/api/destinations/{nom_gare}/mobilites")
+def destination_mobilites(nom_gare: str, rayon: float = Query(2.0, ge=0.3, le=10)):
+    """Mobilite locale autour d'une gare : velos libre-service, bus, tram, ferry.
+
+    Utilise silver.mobilites (45 162 stations chargees depuis OSM + open data).
+    Groupe par type_mobilite et retourne les stations dans un rayon Haversine
+    autour de la gare. Trie par distance croissante.
+    """
+    sql = text(
+        """
+        WITH gare AS (
+            SELECT latitude, longitude FROM silver.gares WHERE nom_gare = :nom LIMIT 1
+        )
+        SELECT m.type_mobilite, m.nom_station, m.commune, m.latitude, m.longitude,
+               m.nb_places,
+               ROUND((
+                 6371 * ACOS(
+                   COS(RADIANS(g.latitude)) * COS(RADIANS(m.latitude)) *
+                   COS(RADIANS(m.longitude) - RADIANS(g.longitude)) +
+                   SIN(RADIANS(g.latitude)) * SIN(RADIANS(m.latitude))
+                 )
+               )::numeric, 2) AS distance_km
+        FROM silver.mobilites m, gare g
+        WHERE m.latitude IS NOT NULL AND m.longitude IS NOT NULL
+          AND (
+            6371 * ACOS(
+              COS(RADIANS(g.latitude)) * COS(RADIANS(m.latitude)) *
+              COS(RADIANS(m.longitude) - RADIANS(g.longitude)) +
+              SIN(RADIANS(g.latitude)) * SIN(RADIANS(m.latitude))
+            )
+          ) <= :rayon
+        ORDER BY distance_km ASC
+        LIMIT 200
+        """
+    )
+    with engine.connect() as conn:
+        gare_exists = conn.execute(
+            text("SELECT 1 FROM silver.gares WHERE nom_gare = :n LIMIT 1"), {"n": nom_gare}
+        ).fetchone()
+        if not gare_exists:
+            raise HTTPException(status_code=404, detail="Gare introuvable")
+        rows = rows_to_dicts(conn.execute(sql, {"nom": nom_gare, "rayon": rayon}))
+
+    # Groupe par type + normalise (velo, parking_velo -> velo)
+    groups = {"velo": [], "bus": [], "tram": [], "ferry": [], "parking_velo": []}
+    for r in rows:
+        t = (r.get("type_mobilite") or "").lower()
+        if t in groups:
+            groups[t].append(r)
+    return {
+        "gare": nom_gare,
+        "rayon_km": rayon,
+        "velos": groups["velo"],
+        "parkings_velo": groups["parking_velo"],
+        "bus": groups["bus"],
+        "trams": groups["tram"],
+        "ferries": groups["ferry"],
+        "totaux": {k: len(v) for k, v in groups.items()},
+    }
+
+
 @app.get("/api/destinations/{nom_gare}/schedules")
 def destination_schedules(nom_gare: str, count: int = Query(8, ge=1, le=20)):
     """Prochains departs SNCF temps reel via API Navitia (cache 5 min)."""
