@@ -114,8 +114,10 @@ function formatManeuver(maneuver, streetName) {
 }
 
 // Ouvre Google Maps directions a pied avec la position utilisateur en origine.
-// Fallback : ouvre juste la destination si la geoloc est refusee / indisponible.
-function openGoogleMapsRoute(destLat, destLon, destLabel) {
+// Supporte les waypoints (multi-etapes) : le dernier point = destination,
+// tous les precedents = etapes intermediaires.
+// Fallback : ouvre sans origine si la geoloc est refusee.
+function openGoogleMapsRoute(destLat, destLon, destLabel, waypoints = []) {
   const dest = `${destLat},${destLon}`
   const open = (origin) => {
     const params = new URLSearchParams({
@@ -124,7 +126,9 @@ function openGoogleMapsRoute(destLat, destLon, destLabel) {
       travelmode: 'walking',
     })
     if (origin) params.set('origin', origin)
-    if (destLabel) params.set('destination_place_id', '') // force les coord
+    if (waypoints.length > 0) {
+      params.set('waypoints', waypoints.map(([la, lo]) => `${la},${lo}`).join('|'))
+    }
     window.open(`https://www.google.com/maps/dir/?${params.toString()}`, '_blank', 'noopener,noreferrer')
   }
   if (!navigator.geolocation) return open(null)
@@ -887,8 +891,13 @@ export default function DestinationDetail() {
                       type="button"
                       onClick={() => {
                         const last = itinerary[itinerary.length - 1]
+                        // Multi-stop : tous les POI intermediaires + destination finale
+                        const waypoints = itinerary
+                          .slice(0, -1)
+                          .filter((p) => p.latitude && p.longitude)
+                          .map((p) => [p.latitude, p.longitude])
                         if (last?.latitude && last?.longitude) {
-                          openGoogleMapsRoute(last.latitude, last.longitude, cleanPoiName(last.nom))
+                          openGoogleMapsRoute(last.latitude, last.longitude, cleanPoiName(last.nom), waypoints)
                         }
                       }}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-violet py-2.5 text-sm font-bold text-white transition hover:bg-violet-dark"

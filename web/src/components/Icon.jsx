@@ -37,6 +37,9 @@ const paths = {
   ticket: '<path d="M2 9V7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4Z"/><path d="M13 5v14"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
   moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+  bus: '<path d="M4 8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v11a2 2 0 0 1-2 2h-1v1M4 8v11a2 2 0 0 0 2 2h1v1M4 8v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M4 12h16M8 6h8"/><circle cx="8" cy="17" r="1"/><circle cx="16" cy="17" r="1"/>',
+  tram: '<rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14M9 7h.01M15 7h.01M8 22l2-2m4 0 2 2M4 3l16 0"/>',
+  ferry: '<path d="M2 20a3 3 0 0 0 3-3v-5l7-5 7 5v5a3 3 0 0 0 3 3M8 12V6h8v6M12 2v3M2 20h20"/>',
 }
 
 export function iconSvg(name, size = 18) {

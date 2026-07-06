@@ -25,7 +25,7 @@ export function MobiliteCards({ mobilites, activeTab, onSelectTab }) {
     },
     {
       id: 'bus',
-      icon: 'train',
+      icon: 'bus',
       label: 'Bus urbains',
       value: mobilites ? `${totaux.bus || 0} arrêt${(totaux.bus || 0) > 1 ? 's' : ''}` : '…',
       chip: totaux.bus ? 'Voir la liste' : 'Aucun arrêt',
@@ -34,7 +34,7 @@ export function MobiliteCards({ mobilites, activeTab, onSelectTab }) {
     },
     {
       id: 'tram',
-      icon: 'train',
+      icon: 'tram',
       label: 'Tramway',
       value: mobilites ? `${totaux.tram || 0} arrêt${(totaux.tram || 0) > 1 ? 's' : ''}` : '…',
       chip: totaux.tram ? 'Voir la liste' : 'Non desservi',
@@ -134,7 +134,7 @@ export function MobiliteList({ type, stations, onGoTo, onClose }) {
                 background: type === 'velo' ? '#EF4444' : type === 'bus' ? '#1F6FEB' : '#8B5CF6',
               }}
             >
-              <Icon name={type === 'velo' ? 'activity' : 'train'} className="h-4 w-4" />
+              <Icon name={type === 'velo' ? 'activity' : type === 'tram' ? 'tram' : type === 'ferry' ? 'ferry' : 'bus'} className="h-4 w-4" />
             </span>
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-bold text-ink">

@@ -28,10 +28,12 @@ SNCF Open Data + DATAtourisme + OpenStreetMap + INSEE + Navitia
 
 | Couche | Rôle |
 |---|---|
-| **Bronze / Silver / Gold** | Extraction, nettoyage, agrégats — PostgreSQL 16 |
+| **Bronze / Silver / Gold** | Extraction, nettoyage, agrégats — PostgreSQL 16 (Supabase en prod) |
 | **ML** | K-means (k=14, silhouette 0,324) + KNN cosine |
 | **API** | FastAPI + JWT + Navitia SNCF — [`api/`](api/) |
 | **Web** | React 18 + Vite + Tailwind + Recharts + Leaflet — [`web/`](web/) |
+
+> **Périmètre actuel en production** : prototype **Pays de la Loire** (136 gares voyageurs, 26 099 POI) chargé sur Supabase. Le pipeline national (2 782 gares, 287 498 POI) est validé en local et rejouable via les scripts `scripts/01→11`.
 
 ## Fonctionnalités
 

@@ -3,6 +3,7 @@ import { Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
+import ErrorBoundary from './components/ErrorBoundary'
 
 const Home = lazy(() => import('./pages/Home'))
 const Destinations = lazy(() => import('./pages/Destinations'))
@@ -33,6 +34,7 @@ export default function App() {
       <main className="flex-1">
         {/* La cle force un remontage a chaque route -> animation d'entree */}
         <div key={location.pathname} className="animate-pagefade">
+          <ErrorBoundary>
           <Suspense fallback={<div className="px-6 py-24 text-center text-sm text-muted">Chargement...</div>}>
             <Routes location={location}>
               <Route path="/" element={<Home />} />
@@ -59,6 +61,7 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          </ErrorBoundary>
         </div>
       </main>
       <Footer />
