@@ -14,9 +14,11 @@ export default function Navbar() {
 
   const links = [
     { to: '/', label: 'Accueil', end: true },
-    { to: '/destinations', label: 'Explorer' },
+    { to: '/destinations', label: 'Destinations' },
     { to: '/carte', label: 'Carte' },
-    { to: '/analyste', label: 'Analyste' },
+    { to: '/mon-voyage', label: 'Mon voyage' },
+    { to: '/favoris', label: 'Favoris' },
+    { to: '/analyste', label: 'Data Analyse' },
   ]
 
   const linkClass = ({ isActive }) =>

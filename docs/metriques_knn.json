@@ -2,31 +2,31 @@
   "Famille": {
     "precision_at_5": null,
     "recall_at_5": null,
-    "stability_at_5": 1.0,
+    "stability_at_5": 0.84,
     "evaluation_status": "verite_terrain_absente"
   },
   "Solo": {
     "precision_at_5": null,
     "recall_at_5": null,
-    "stability_at_5": 1.0,
+    "stability_at_5": 0.72,
     "evaluation_status": "verite_terrain_absente"
   },
   "Couple": {
     "precision_at_5": null,
     "recall_at_5": null,
-    "stability_at_5": 0.92,
+    "stability_at_5": 0.76,
     "evaluation_status": "verite_terrain_absente"
   },
-  "Groupe": {
+  "Entre amis": {
     "precision_at_5": null,
     "recall_at_5": null,
-    "stability_at_5": 1.0,
+    "stability_at_5": 0.88,
     "evaluation_status": "verite_terrain_absente"
   },
-  "Eco": {
+  "Senior": {
     "precision_at_5": null,
     "recall_at_5": null,
-    "stability_at_5": 0.98,
+    "stability_at_5": 0.76,
     "evaluation_status": "verite_terrain_absente"
   }
 }

@@ -2,7 +2,7 @@
 
 **Dernière vérification :** 3 juillet 2026
 
-**Périmètre :** base PostgreSQL locale, région Pays de la Loire
+**Périmètre historique de cet audit :** base PostgreSQL locale, région Pays de la Loire. Le pipeline a depuis été généralisé à la France métropolitaine ; les valeurs nationales doivent être recalculées après réingestion.
 
 ## Synthèse
 

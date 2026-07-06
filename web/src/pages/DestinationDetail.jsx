@@ -592,6 +592,31 @@ export default function DestinationDetail() {
           </div>
         )}
 
+        {/* Mobilité locale */}
+        <div className="mt-10">
+          <h2 className="mb-1 text-2xl font-black tracking-tighter text-ink">Mobilité locale</h2>
+          <p className="mb-4 text-sm text-muted">Se déplacer autour de la gare, sans voiture.</p>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[
+              { icon: 'pin', label: 'Centre-ville', value: '≤ 5 min à pied', chip: 'Accessible' },
+              { icon: 'activity', label: 'Vélos en libre-service', value: 'À proximité', chip: '≤ 300 m' },
+              { icon: 'train', label: 'Bus urbains', value: 'Arrêts autour de la gare', chip: 'Multi-lignes' },
+              { icon: 'leaf', label: 'Sans voiture', value: 'Séjour possible', chip: 'Bas carbone' },
+            ].map((m) => (
+              <div key={m.label} className="rounded-2xl border border-line bg-card p-4">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-eco/10 text-eco">
+                    <Icon name={m.icon} className="h-4 w-4" />
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{m.label}</span>
+                </div>
+                <div className="mt-2 text-sm font-bold text-ink">{m.value}</div>
+                <div className="mt-1 inline-block rounded-md bg-eco/10 px-2 py-0.5 text-[10px] font-bold text-eco">{m.chip}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Carte */}
         {d.latitude && d.longitude && (
           <div className="mt-10">

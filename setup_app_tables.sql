@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS userapp.users (
     pseudo VARCHAR(100) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     ville_depart VARCHAR(100) DEFAULT 'Nantes',
+    preferences JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP DEFAULT NOW()
 );
 

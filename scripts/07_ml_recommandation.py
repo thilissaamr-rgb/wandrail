@@ -1,7 +1,7 @@
 """
 Script 07 - KNN Recommandation de destinations par profil voyageur
 ------------------------------------------------------------------
-Pour chaque profil (Famille, Solo, Couple, Groupe, Eco) :
+Pour chaque profil (Famille, Solo, Couple, Entre amis, Senior) :
   1. Construit la matrice features des gares depuis gold.dim_gare
   2. Pondere les features selon les preferences du profil
   3. KNN (k=10, metrique cosinus) trouve les gares les plus proches du profil
@@ -100,7 +100,7 @@ PREFS_PROFIL = {
         "nb_categories"      : 3,
         "score_attractivite" : 4,
     },
-    "Groupe": {
+    "Entre amis": {
         "nb_hebergement"     : 3,
         "nb_restauration"    : 3,
         "nb_culture"         : 1,
@@ -113,17 +113,17 @@ PREFS_PROFIL = {
         "nb_categories"      : 2,
         "score_attractivite" : 3,
     },
-    "Eco": {
-        "nb_hebergement"     : 2,
-        "nb_restauration"    : 2,
-        "nb_culture"         : 2,
-        "nb_patrimoine"      : 3,
-        "nb_nature"          : 5,
-        "nb_sport_loisirs"   : 3,
+    "Senior": {
+        "nb_hebergement"     : 4,
+        "nb_restauration"    : 3,
+        "nb_culture"         : 5,
+        "nb_patrimoine"      : 5,
+        "nb_nature"          : 3,
+        "nb_sport_loisirs"   : 1,
         "nb_loisirs"         : 2,
         "nb_evenement"       : 1,
         "nb_poi_5km"         : 3,
-        "nb_categories"      : 3,
+        "nb_categories"      : 4,
         "score_attractivite" : 4,
     },
 }

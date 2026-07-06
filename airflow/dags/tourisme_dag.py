@@ -1,5 +1,5 @@
 """
-DAG Airflow - Pipeline Wandrail (Pays de la Loire)
+DAG Airflow - Pipeline Wandrail national
 Architecture Medaillon : Bronze -> Silver -> Gold -> ML
 Execution : chaque semaine (dimanche a 2h du matin)
 """

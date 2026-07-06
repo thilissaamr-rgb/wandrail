@@ -2,22 +2,16 @@
 
 Wandrail est une plateforme Big Data & IA conçue dans le cadre du Master 1 Big Data & IA de Sup de Vinci, autour du défi Fondation SNCF : **comment faciliter et encourager le tourisme en train en France ?**
 
-La version actuelle couvre les **Pays de la Loire** et propose deux parcours dans une seule application :
+Le pipeline cible désormais la **France métropolitaine couverte par le référentiel SNCF voyageurs utilisé** et propose deux parcours dans une seule application :
 
 - **Espace Voyageur** : découverte, carte, recommandations, EcoScore, comparaison CO₂ et favoris ;
-- **Espace Analyste** : qualité des données, pipeline Médaillon, modèles IA et aide à la décision SNCF/territoires.
+- **Espace Analyste** : qualité des données, pipeline Médaillon, modèles IA et aide à la décision SNCF/territoires, accessible directement pour la soutenance sans alourdir le menu voyageur.
 
-## Résultats actuels
+## Indicateurs
 
-- 136 gares SNCF analysées ;
-- 26 099 points d'intérêt DATAtourisme et OpenStreetMap ;
-- 5 profils voyageurs et 25 recommandations expliquées ;
-- qualité globale : 98,6/100 selon quatre dimensions explicites ;
-- KMeans : 15 clusters, silhouette 0,4342 ;
-- KNN : stabilité@5 entre 0,92 et 1,00 ;
-- Precision@5 et Recall@5 non disponibles faute de vérité terrain utilisateur.
+Les nombres de gares, POI, régions, anomalies et recommandations sont calculés depuis la base courante et affichés dans l’Espace Analyste. Ils ne sont pas figés dans la documentation. Precision@5 et Recall@5 restent non disponibles faute de vérité terrain utilisateur.
 
-Ces chiffres proviennent de la base locale auditée le 3 juillet 2026. Les limites sont documentées dans [l'audit complet](docs/audit_complet_2026-07-02.md).
+Dernière exécution nationale validée le 5 juillet 2026 : 2 782 gares voyageurs, 287 498 POI Silver, 34 386 communes INSEE, 14 clusters KMeans (silhouette 0,324) et 25 recommandations KNN expliquées.
 
 ## Architecture
 
@@ -44,8 +38,9 @@ Bronze -> Silver -> Gold -> ML -> FastAPI -> React
 - `/` - proposition de valeur et sélection ;
 - `/destinations` - recherche, filtres et recommandations ;
 - `/destinations/:nom` - fiche destination, POI, carte et CO₂ ;
-- `/carte` - carte des gares ;
-- `/favoris` - destinations enregistrées.
+- `/carte` - explorateur national avec agrégation par zoom, recherche et filtres ;
+- `/favoris` - espace « Mon voyage », itinéraires locaux et favoris synchronisés.
+- `/profil` - compte connecté, activité réelle, voyages préparés et préférences.
 
 ### Analyste
 
@@ -54,7 +49,7 @@ Bronze -> Silver -> Gold -> ML -> FastAPI -> React
 - `/analyste/pipeline` - Bronze → Silver → Gold → ML → API → Frontend ;
 - `/analyste/ml` - KMeans, KNN et métriques ;
 - `/analyste/decision` - potentiel territorial et scénario carbone ;
-- `/data-dashboard` - ancienne route conservée ;
+- `/data-dashboard` - redirection de compatibilité vers le rapport qualité ;
 - `/methodologie` - méthodologie complète.
 
 ## Endpoints principaux
@@ -67,8 +62,9 @@ Bronze -> Silver -> Gold -> ML -> FastAPI -> React
 - `GET /api/analyste/overview`
 - `GET /api/analyste/decision`
 - `GET /api/top-destinations`
-- `GET /api/destinations`
+- `GET /api/destinations` (recherche, département, profil, catégorie, tri)
 - `GET /api/recommandations/{profil}`
+- `GET /api/profile` et `PATCH /api/profile` (authentifiés)
 
 La documentation OpenAPI est disponible sur `/docs` lorsque l'API fonctionne.
 
@@ -95,7 +91,7 @@ docker compose up -d
 python scripts/00_init_db.py --force   # bootstrap destructif, une seule fois
 python scripts/01_gares.py
 python scripts/02_datatourisme.py
-python scripts/03_osm.py
+python scripts/03_osm.py              # ignoré en mode national (Overpass public)
 python scripts/04_enrichissement.py
 python scripts/05_gold_layer.py
 python scripts/06_ml_clustering.py
@@ -156,4 +152,4 @@ Une recette sur la base de production reste indispensable après déploiement.
 
 ## Positionnement honnête
 
-Wandrail est un prototype régional professionnel. Il démontre une chaîne complète données → qualité → features → modèles → API → interface. Il ne prétend pas encore fournir un calculateur national temps réel ni un système de recommandation validé sur des comportements utilisateurs.
+Wandrail est un prototype national professionnel. Il démontre une chaîne complète données → qualité → features → modèles → API → interface. Il ne prétend pas fournir des horaires ou tarifs temps réel ni un système de recommandation déjà validé sur des comportements utilisateurs.

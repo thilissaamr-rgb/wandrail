@@ -113,7 +113,7 @@ CREATE TABLE silver.gares (
     commune             VARCHAR(100),
     departement         VARCHAR(100),
     code_departement    VARCHAR(10),
-    region              VARCHAR(100) DEFAULT 'Pays de la Loire',
+    region              VARCHAR(100) DEFAULT 'France',
     latitude            FLOAT,
     longitude           FLOAT,
     type_gare           VARCHAR(50)  DEFAULT 'Voyageurs',
@@ -133,9 +133,11 @@ CREATE TABLE silver.poi (
     longitude       FLOAT,
     telephone       VARCHAR(50),
     site_web        VARCHAR(500),
+    image_url       TEXT,
+    image_credit    TEXT,
     note_moyenne    FLOAT,
     score_qualite_source FLOAT,
-    region          VARCHAR(100)  DEFAULT 'Pays de la Loire',
+    region          VARCHAR(100)  DEFAULT 'France',
     source          VARCHAR(50)   DEFAULT 'datatourisme',
     date_maj        TIMESTAMP,
     date_extraction TIMESTAMP     DEFAULT NOW()
@@ -219,8 +221,8 @@ CREATE TABLE silver.cyclables (
 
 CREATE TABLE silver.population (
     id              SERIAL PRIMARY KEY,
-    commune         VARCHAR(100) UNIQUE,
-    code_commune    VARCHAR(10),
+    commune         VARCHAR(100),
+    code_commune    VARCHAR(10) UNIQUE,
     population_2024 INTEGER,
     superficie_km2  FLOAT,
     densite         FLOAT,

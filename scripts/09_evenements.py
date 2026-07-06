@@ -27,6 +27,10 @@ from dotenv import load_dotenv
 sys.stdout.reconfigure(encoding='utf-8')
 load_dotenv()
 
+if os.getenv("DATA_SCOPE", "france_metropolitaine") == "france_metropolitaine":
+    print("Script 09 ignore en mode national : DATAtourisme fournit deja les evenements nationaux.")
+    sys.exit(0)
+
 
 # -- Connexion ---------------------------------------------------------------
 

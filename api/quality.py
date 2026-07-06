@@ -15,7 +15,6 @@ CANONICAL_CATEGORIES = (
     "Restauration",
     "Sport & Loisirs",
 )
-PDL_DEPARTMENTS = ("44", "49", "53", "72", "85")
 
 
 def _ratio(valid: int, total: int) -> float:
@@ -42,9 +41,9 @@ def build_data_quality_report(connection) -> dict:
                 """
                 SELECT COUNT(*) AS total,
                        COUNT(*) FILTER (WHERE latitude IS NOT NULL AND longitude IS NOT NULL) AS geocoded,
-                       COUNT(*) FILTER (WHERE latitude BETWEEN 46.2 AND 48.7
-                                         AND longitude BETWEEN -2.7 AND 1.0) AS valid_coordinates,
-                       COUNT(*) FILTER (WHERE code_departement IN ('44','49','53','72','85')) AS valid_department,
+                       COUNT(*) FILTER (WHERE latitude BETWEEN 41.0 AND 51.6
+                                         AND longitude BETWEEN -5.6 AND 10.0) AS valid_coordinates,
+                       COUNT(*) FILTER (WHERE code_departement ~ '^(0[1-9]|[1-8][0-9]|9[0-5]|2A|2B)$') AS valid_department,
                        COUNT(*) - COUNT(DISTINCT code_uic) AS duplicates,
                        COUNT(*) FILTER (WHERE nom_gare IS NULL OR btrim(nom_gare) = '') AS missing_name,
                        COUNT(*) FILTER (WHERE nb_voyageurs_annuel IS NULL) AS missing_traffic
@@ -59,8 +58,8 @@ def build_data_quality_report(connection) -> dict:
                 """
                 SELECT COUNT(*) AS total,
                        COUNT(*) FILTER (WHERE latitude IS NOT NULL AND longitude IS NOT NULL) AS geocoded,
-                       COUNT(*) FILTER (WHERE latitude BETWEEN 46.2 AND 48.7
-                                         AND longitude BETWEEN -2.7 AND 1.0) AS valid_coordinates,
+                       COUNT(*) FILTER (WHERE latitude BETWEEN 41.0 AND 51.6
+                                         AND longitude BETWEEN -5.6 AND 10.0) AS valid_coordinates,
                        COUNT(*) FILTER (WHERE categorie IS NOT NULL AND btrim(categorie) <> '') AS categorized,
                        COUNT(*) FILTER (WHERE categorie <> 'Autre') AS specific_category,
                        COUNT(*) FILTER (WHERE note_moyenne IS NULL OR note_moyenne BETWEEN 0 AND 5) AS valid_rating,

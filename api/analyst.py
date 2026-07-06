@@ -62,8 +62,8 @@ def build_pipeline(connection) -> dict:
             "role": "Nettoyer, typer, géolocaliser et rapprocher gares et POI.",
             "rows": counts["silver"]["rows"],
             "tables": counts["silver"]["tables"],
-            "controls": ["codes UIC uniques", "coordonnées PDL", "catégories normalisées", "doublons POI"],
-            "transformations": ["filtrage régional", "Haversine gare-POI", "temps de marche estimé"],
+            "controls": ["codes UIC uniques", "coordonnées France", "catégories normalisées", "doublons POI"],
+            "transformations": ["filtrage ferroviaire national", "BallTree / Haversine gare-POI", "temps de marche estimé"],
         },
         {
             "id": "gold",
@@ -128,15 +128,19 @@ def build_ml_metrics(connection) -> dict:
             )
         )
     )
+    grid = kmeans.get("grid", [2, 15])
+    best_k = kmeans.get("best_k")
+    optimum_at_boundary = bool(grid and best_k in (grid[0], grid[-1]))
     return {
         "kmeans": {
             "objective": "Regrouper les POI selon leur position et leur catégorie.",
             "features": ["latitude", "longitude", "catégorie one-hot"],
             "preprocessing": ["StandardScaler sur les coordonnées", "OneHotEncoder sur la catégorie"],
-            "n_clusters": kmeans.get("best_k"),
+            "n_clusters": best_k,
             "silhouette": kmeans.get("silhouette"),
-            "grid": kmeans.get("grid", [2, 15]),
-            "limitation": "L'optimum est en borne haute et les catégories majoritaires dominent encore les groupes.",
+            "grid": grid,
+            "interpretation": "optimum en borne de grille" if optimum_at_boundary else "optimum intérieur à la grille testée",
+            "limitation": "Les catégories majoritaires dominent encore certains groupes ; l'interprétation métier reste prudente.",
             "distribution": cluster_distribution,
         },
         "knn": {

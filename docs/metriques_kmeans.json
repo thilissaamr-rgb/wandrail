@@ -1,8 +1,15 @@
 {
-  "best_k": 15,
-  "silhouette": 0.4342,
-  "grid": [2, 15],
+  "best_k": 14,
+  "silhouette": 0.324,
+  "grid": [
+    2,
+    15
+  ],
   "sample_size": 5000,
-  "features": ["latitude", "longitude", "categorie_one_hot"],
-  "evaluation_status": "optimum_en_borne_haute"
+  "features": [
+    "latitude",
+    "longitude",
+    "categorie_one_hot"
+  ],
+  "evaluation_status": "interieur_grille"
 }

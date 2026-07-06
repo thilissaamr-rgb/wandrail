@@ -34,16 +34,24 @@ print("=" * 60)
 # -- [1/7] DIM_REGION ----------------------------------------------------------
 
 print("\n[1/7] dim_region...")
-regions = [
-    (1, "Pays de la Loire",   "52", "Nantes",   5, 3870059, 32082),
-    (2, "Ile-de-France",      "11", "Paris",    8, 12213364, 12012),
-    (3, "Bretagne",           "53", "Rennes",   4, 3380971,  27208),
-    (4, "Normandie",          "28", "Rouen",    5, 3371882,  29907),
-    (5, "Nouvelle-Aquitaine", "75", "Bordeaux", 12, 6109762, 84036),
-]
-df_reg = pd.DataFrame(regions, columns=[
-    "id","nom_region","code_region","chef_lieu","nb_departements","population","superficie_km2"
-])
+df_reg = pd.read_sql("""
+    SELECT region AS nom_region, COUNT(DISTINCT code_departement) AS nb_departements
+    FROM silver.gares
+    WHERE region IS NOT NULL AND region <> ''
+    GROUP BY region ORDER BY region
+""", engine)
+if df_reg.empty:
+    raise RuntimeError("Aucune region disponible dans silver.gares")
+df_reg.insert(0, "id", range(1, len(df_reg) + 1))
+df_reg["code_region"] = None
+df_reg["chef_lieu"] = None
+df_reg["population"] = None
+df_reg["superficie_km2"] = None
+df_reg = df_reg[[
+    "id", "nom_region", "code_region", "chef_lieu", "nb_departements",
+    "population", "superficie_km2",
+]]
+region_ids = dict(zip(df_reg["nom_region"], df_reg["id"]))
 with engine.connect() as conn:
     conn.execute(text("TRUNCATE TABLE gold.dim_region RESTART IDENTITY CASCADE"))
     conn.commit()
@@ -58,8 +66,8 @@ profils = [
     (1, "Famille",  "Famille avec enfants, recherche activites variees",        150, 5,  3, "Nature,Sport,Loisirs,Culture",   "famille"),
     (2, "Solo",     "Voyageur solo, curieux et autonome",                         80, 10, 2, "Culture,Patrimoine,Gastronomie", "solo"),
     (3, "Couple",   "Couple sans enfant, romantique et gastronomique",           120, 8,  2, "Gastronomie,Patrimoine,Nature",  "couple"),
-    (4, "Groupe",   "Groupe d'amis, ambiance festive et sportive",                60, 15, 1, "Sport,Loisirs,Aventure",         "groupe"),
-    (5, "Eco",      "Voyageur eco-responsable, mobilite douce et nature",         50, 3,  2, "Nature,Velo,Sport,Patrimoine",   "eco"),
+    (4, "Entre amis", "Voyage entre amis, sorties, loisirs et evenements",          80, 15, 2, "Sport,Loisirs,Evenement",        "amis"),
+    (5, "Senior",     "Voyage confortable, culturel et patrimonial",               100, 5,  3, "Culture,Patrimoine,Nature",      "senior"),
 ]
 df_prof = pd.DataFrame(profils, columns=[
     "id","nom","description","budget_jour_eur","distance_max_gare_km","duree_sejour_jours","preferences","icone"
@@ -218,20 +226,18 @@ print("[7/7] fait_co2 + fait_voyage...")
 
 distances = list(range(50, 1050, 50))
 co2_rows  = []
-for d in distances:
-    for t_id, t_nom, _, co2_km, *rest in transports:
-        co2_tot    = co2_km * d
-        co2_voiture = 218.0 * d
-        co2_rows.append({
-            "id_transport"          : t_id,
-            "id_region"             : 1,
-            "distance_km"           : d,
-            "co2_total_g"           : round(co2_tot, 1),
-            "co2_par_km_g"          : co2_km,
-            "economie_vs_voiture_g" : round(max(0, co2_voiture - co2_tot), 1),
-            "economie_vs_avion_g"   : round(max(0, 258.0 * d - co2_tot), 1),
-            "nb_arbres_equivalent"  : round(max(0, (co2_voiture - co2_tot)) / 21000, 3),
-        })
+for region_id in df_reg["id"]:
+    for d in distances:
+        for t_id, t_nom, _, co2_km, *rest in transports:
+            co2_tot = co2_km * d
+            co2_voiture = 218.0 * d
+            co2_rows.append({
+                "id_transport": t_id, "id_region": int(region_id), "distance_km": d,
+                "co2_total_g": round(co2_tot, 1), "co2_par_km_g": co2_km,
+                "economie_vs_voiture_g": round(max(0, co2_voiture - co2_tot), 1),
+                "economie_vs_avion_g": round(max(0, 258.0 * d - co2_tot), 1),
+                "nb_arbres_equivalent": round(max(0, co2_voiture - co2_tot) / 21000, 3),
+            })
 
 df_co2 = pd.DataFrame(co2_rows)
 with engine.connect() as conn:
@@ -255,10 +261,16 @@ villes_depart = [
     ("Le Mans",  0.1996,  48.0061,  80),
     ("Angers",  -0.5518,  47.4784,  90),
     ("Rennes",  -1.6743,  48.1147, 100),
+    ("Lyon",      4.8357,  45.7640,   0),
+    ("Lille",     3.0573,  50.6292,   0),
+    ("Bordeaux", -0.5792,  44.8378,   0),
+    ("Marseille", 5.3698,  43.2965,   0),
+    ("Toulouse",  1.4442,  43.6047,   0),
+    ("Strasbourg",7.7521,  48.5734,   0),
 ]
 
 df_gare_gold = pd.read_sql(
-    "SELECT id, nom_gare, latitude, longitude, nb_poi_2km, nb_poi_5km, nb_poi_10km, nb_categories, nb_voyageurs_annuel, score_attractivite FROM gold.dim_gare",
+    "SELECT id, nom_gare, region, latitude, longitude, nb_poi_2km, nb_poi_5km, nb_poi_10km, nb_categories, nb_voyageurs_annuel, score_attractivite FROM gold.dim_gare",
     engine
 )
 
@@ -289,7 +301,7 @@ for _, gare in df_gare_gold.iterrows():
             fait_rows.append({
                 "id_gare"           : int(gare['id']),
                 "id_profil"         : p_id,
-                "id_region"         : 1,
+                "id_region"         : int(region_ids.get(gare['region'], df_reg.iloc[0]['id'])),
                 "id_temps"          : int(id_temps_ete),
                 "distance_depart_km": round(dist, 1),
                 "nb_poi_2km"        : int(gare['nb_poi_2km']),

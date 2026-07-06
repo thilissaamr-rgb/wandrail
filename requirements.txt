@@ -4,6 +4,7 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 requests
+ijson
 folium
 plotly
 scikit-learn

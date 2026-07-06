@@ -29,6 +29,13 @@ from dotenv import load_dotenv
 sys.stdout.reconfigure(encoding='utf-8')
 load_dotenv()
 
+# Overpass public n'est pas adapte a une extraction France entiere.
+# DATAtourisme reste la source nationale; les mobilites OSM demanderont un
+# extrait Geofabrik traite hors API publique.
+if os.getenv("DATA_SCOPE", "france_metropolitaine") == "france_metropolitaine":
+    print("Script 03 ignore en mode national : utiliser un extrait OSM Geofabrik.")
+    sys.exit(0)
+
 
 # -- Connexion ---------------------------------------------------------------
 

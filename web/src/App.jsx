@@ -10,6 +10,7 @@ const DestinationDetail = lazy(() => import('./pages/DestinationDetail'))
 const Carte = lazy(() => import('./pages/Carte'))
 const Favoris = lazy(() => import('./pages/Favoris'))
 const Profil = lazy(() => import('./pages/Profil'))
+const MonVoyage = lazy(() => import('./pages/MonVoyage'))
 const DataDashboard = lazy(() => import('./pages/DataDashboard'))
 const Methodologie = lazy(() => import('./pages/Methodologie'))
 const NotFound = lazy(() => import('./pages/NotFound'))
@@ -18,6 +19,9 @@ const AnalystOverview = lazy(() => import('./pages/analyste/Overview'))
 const AnalystPipeline = lazy(() => import('./pages/analyste/Pipeline'))
 const AnalystML = lazy(() => import('./pages/analyste/ML'))
 const AnalystDecision = lazy(() => import('./pages/analyste/Decision'))
+const AnalystTourisme = lazy(() => import('./pages/analyste/Tourisme'))
+const AnalystCarbone = lazy(() => import('./pages/analyste/Carbone'))
+const AnalystProfils = lazy(() => import('./pages/analyste/Profils'))
 
 export default function App() {
   const location = useLocation()
@@ -36,6 +40,7 @@ export default function App() {
               <Route path="/carte" element={<Carte />} />
               <Route path="/favoris" element={<Favoris />} />
               <Route path="/profil" element={<Profil />} />
+              <Route path="/mon-voyage" element={<MonVoyage />} />
               <Route path="/data-dashboard" element={<Navigate to="/analyste/data-quality" replace />} />
               <Route path="/methodologie" element={<Methodologie />} />
               <Route path="/analyste" element={<AnalystLayout />}>
@@ -44,6 +49,9 @@ export default function App() {
                 <Route path="data-quality" element={<DataDashboard />} />
                 <Route path="pipeline" element={<AnalystPipeline />} />
                 <Route path="ml" element={<AnalystML />} />
+                <Route path="tourisme" element={<AnalystTourisme />} />
+                <Route path="carbone" element={<AnalystCarbone />} />
+                <Route path="profils" element={<AnalystProfils />} />
                 <Route path="decision" element={<AnalystDecision />} />
               </Route>
               <Route path="*" element={<NotFound />} />

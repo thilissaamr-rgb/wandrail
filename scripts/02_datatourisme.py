@@ -1,37 +1,63 @@
-"""
-Script 02 - Points d'interet DATAtourisme (Pays de la Loire)
--------------------------------------------------------------
-Etapes :
-  1. Appelle l'API DATAtourisme pour recuperer tous les POI PDL
-  2. Extrait nom, categorie, commune, GPS, telephone, site web
-  3. Calcule un indicateur technique de qualite de la source
-  4. Insere dans bronze.poi_raw puis silver.poi
+"""Ingestion du flux national DATAtourisme (Bronze -> Silver).
 
-Indicateur de qualite source (0-10, non affiche comme une note) :
-  - POI avec site web      : +3 pts
-  - POI avec telephone     : +2 pts
-  - Categorie rare (< 5%)  : +2 pts  (valorise la diversite)
-  - POI recemment mis a jour (< 6 mois) : +3 pts
-  - Score normalise entre 0 et 10
-
-Resultat attendu : 10 000 - 15 000 POI en Pays de la Loire
+Le flux est telecharge sur disque puis analyse en streaming : le volume France
+entiere ne doit jamais etre charge integralement en memoire.
 """
 
-import sys
-import os
 import json
-import requests
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from sqlalchemy import create_engine, text
-from dotenv import load_dotenv
+import os
+import re
+import sys
+import tempfile
+import zipfile
+from collections import Counter
+from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
-sys.stdout.reconfigure(encoding='utf-8')
+import ijson
+import requests
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+
+sys.stdout.reconfigure(encoding="utf-8")
 load_dotenv()
 
+WEBSERVICE_ID = os.getenv(
+    "DATATOURISME_WEBSERVICE_ID", "222c9873dec5a3a41478b01f9a70a589"
+).strip()
+API_KEY = os.getenv("DATATOURISME_API_KEY", "").strip()
+if not API_KEY:
+    raise RuntimeError("DATATOURISME_API_KEY doit etre defini dans .env")
+if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", WEBSERVICE_ID):
+    raise RuntimeError("DATATOURISME_WEBSERVICE_ID est invalide")
 
-# -- Connexion ---------------------------------------------------------------
+URL_DT = (
+    f"https://diffuseur.datatourisme.fr/webservice/{WEBSERVICE_ID}/"
+    f"{quote(API_KEY, safe='')}"
+)
+LAT_MIN, LAT_MAX = 41.0, 51.6
+LON_MIN, LON_MAX = -5.6, 10.0
+BATCH_SIZE = int(os.getenv("DATATOURISME_BATCH_SIZE", "2000"))
+
+CATEGORIES = {
+    "Accommodation": "Hebergement", "Hotel": "Hebergement",
+    "Camping": "Hebergement", "Gite": "Hebergement",
+    "BedAndBreakfast": "Hebergement", "Hostel": "Hebergement",
+    "Restaurant": "Restauration", "FoodEstablishment": "Restauration",
+    "Cafe": "Restauration", "FastFoodRestaurant": "Restauration",
+    "Winery": "Restauration", "Museum": "Culture", "CulturalSite": "Culture",
+    "Theater": "Culture", "Library": "Culture", "ArtGallery": "Culture",
+    "Church": "Patrimoine", "Castle": "Patrimoine", "ReligiousSite": "Patrimoine",
+    "Monument": "Patrimoine", "HistoricBuilding": "Patrimoine",
+    "NaturalHeritage": "Nature", "Park": "Nature", "Beach": "Nature",
+    "Lake": "Nature", "Forest": "Nature", "Garden": "Nature",
+    "SportsAndLeisurePlace": "Sport & Loisirs", "Sport": "Sport & Loisirs",
+    "LeisureSportComplexe": "Sport & Loisirs", "EntertainmentAndEvent": "Evenement",
+    "Festival": "Evenement", "ExhibitionEvent": "Evenement", "Cinema": "Loisirs",
+    "TouristInformationCenter": "Service", "Store": "Commerce",
+    "PointOfInterest": "Autre",
+}
+
 
 def get_engine():
     return create_engine(
@@ -41,376 +67,296 @@ def get_engine():
     )
 
 
-engine  = get_engine()
-API_KEY = os.getenv("DATATOURISME_API_KEY", "")
-if not API_KEY:
-    raise RuntimeError("DATATOURISME_API_KEY doit etre defini dans l'environnement")
-URL_DT  = f"https://diffuseur.datatourisme.fr/webservice/b4c0271347c8681f390b852d8937d2e5/{API_KEY}"
-
-# Bounding box Pays de la Loire
-LAT_MIN, LAT_MAX = 46.3, 48.4
-LON_MIN, LON_MAX = -2.6,  1.0
-
-# Mapping types DATAtourisme -> categories normalisees Wandrail
-CATEGORIES = {
-    "Accommodation"          : "Hebergement",
-    "Hotel"                  : "Hebergement",
-    "Camping"                : "Hebergement",
-    "Gite"                   : "Hebergement",
-    "BedAndBreakfast"        : "Hebergement",
-    "Hostel"                 : "Hebergement",
-    "Restaurant"             : "Restauration",
-    "FoodEstablishment"      : "Restauration",
-    "Cafe"                   : "Restauration",
-    "FastFoodRestaurant"     : "Restauration",
-    "Winery"                 : "Restauration",
-    "Museum"                 : "Culture",
-    "CulturalSite"           : "Culture",
-    "Theater"                : "Culture",
-    "Library"                : "Culture",
-    "ArtGallery"             : "Culture",
-    "Church"                 : "Patrimoine",
-    "Castle"                 : "Patrimoine",
-    "ReligiousSite"          : "Patrimoine",
-    "Monument"               : "Patrimoine",
-    "HistoricBuilding"       : "Patrimoine",
-    "NaturalHeritage"        : "Nature",
-    "Park"                   : "Nature",
-    "Beach"                  : "Nature",
-    "Lake"                   : "Nature",
-    "Forest"                 : "Nature",
-    "Garden"                 : "Nature",
-    "SportsAndLeisurePlace"  : "Sport & Loisirs",
-    "Sport"                  : "Sport & Loisirs",
-    "LeisureSportComplexe"   : "Sport & Loisirs",
-    "EntertainmentAndEvent"  : "Evenement",
-    "Festival"               : "Evenement",
-    "ExhibitionEvent"        : "Evenement",
-    "Cinema"                 : "Loisirs",
-    "TouristInformationCenter": "Service",
-    "Store"                  : "Commerce",
-    "PointOfInterest"        : "Autre",
-}
+def scalar(value):
+    if isinstance(value, list):
+        value = value[0] if value else None
+    if isinstance(value, dict):
+        value = value.get("@value") or value.get("fr") or value.get("@id")
+    return str(value).strip() if value not in (None, "") else ""
 
 
-print("=" * 60)
-print("SCRIPT 02 - DATAtourisme Pays de la Loire")
-print("=" * 60)
+def first_dict(value):
+    if isinstance(value, list):
+        value = value[0] if value else {}
+    return value if isinstance(value, dict) else {}
 
 
-# -- Etape 1 : Appel API -------------------------------------------------------
-
-print("\nConnexion a l'API DATAtourisme...")
-try:
-    r = requests.get(URL_DT, timeout=120)
-    r.raise_for_status()
-    data  = r.json()
-    graph = data.get("@graph", data) if isinstance(data, dict) else data
-    print(f"  {len(graph)} items recus de l'API")
-except Exception as e:
-    print(f"Erreur API : {e}")
-    sys.exit(1)
+def label(item):
+    value = item.get("rdfs:label")
+    if isinstance(value, list):
+        french = next(
+            (entry for entry in value if isinstance(entry, dict) and entry.get("@language") == "fr"),
+            value[0] if value else {},
+        )
+        return scalar(french)
+    return scalar(value)
 
 
-# -- Etape 2 : Bronze -----------------------------------------------------------
-
-print("\nBronze - insertion donnees brutes...")
-with engine.connect() as conn:
-    conn.execute(text("TRUNCATE TABLE bronze.poi_raw RESTART IDENTITY"))
-    count_b = 0
-    for item in graph:
-        try:
-            ident = item.get("@id", "")
-            nom_b = ""
-            if "rdfs:label" in item:
-                lab = item["rdfs:label"]
-                if isinstance(lab, dict):
-                    nom_b = lab.get("@value", "") or lab.get("fr", "")
-                elif isinstance(lab, list):
-                    for l in lab:
-                        if isinstance(l, dict) and l.get("@language") == "fr":
-                            nom_b = l.get("@value", "")
-                            break
-
-            types    = item.get("@type", [])
-            if isinstance(types, str):
-                types = [types]
-            type_raw = "|".join(types[:5])
-
-            conn.execute(text("""
-                INSERT INTO bronze.poi_raw (json_brut, identifiant, nom, type_raw, region)
-                VALUES (:json, :id, :nom, :type, :reg)
-            """), {
-                "json": json.dumps(item, ensure_ascii=False)[:5000],
-                "id"  : ident,
-                "nom" : str(nom_b)[:200],
-                "type": type_raw[:200],
-                "reg" : "Pays de la Loire",
-            })
-            count_b += 1
-        except Exception:
-            continue
-    conn.commit()
-
-print(f"  {count_b} lignes dans bronze.poi_raw")
-
-
-# -- Fonctions d'extraction ----------------------------------------------------
-
-def extraire_nom(item):
-    """Extrait le nom en francais depuis rdfs:label."""
-    if "rdfs:label" in item:
-        lab = item["rdfs:label"]
-        if isinstance(lab, dict):
-            v = lab.get("@value", "") or lab.get("fr", "")
-            return str(v).strip() if not isinstance(v, list) else (str(v[0]).strip() if v else "")
-        elif isinstance(lab, list):
-            for l in lab:
-                if isinstance(l, dict) and l.get("@language") == "fr":
-                    return str(l.get("@value", "")).strip()
-    return ""
-
-
-def extraire_coordonnees(item):
-    """Extrait latitude et longitude depuis isLocatedAt ou schema:geo."""
-    lat, lon = None, None
-    loc = item.get("isLocatedAt") or item.get("schema:geo")
-    if not loc:
-        return lat, lon
-    if isinstance(loc, list):
-        loc = loc[0]
-    geo = loc.get("schema:geo") if isinstance(loc, dict) else loc
-    if not geo:
-        return lat, lon
-    if isinstance(geo, list):
-        geo = geo[0]
+def location(item):
+    located = first_dict(item.get("isLocatedAt") or item.get("schema:geo"))
+    geo = first_dict(located.get("schema:geo") or located)
+    address = first_dict(located.get("schema:address"))
     try:
-        lat_r = geo.get("schema:latitude", {})
-        lon_r = geo.get("schema:longitude", {})
-        lat = float(lat_r.get("@value", 0) if isinstance(lat_r, dict) else lat_r or 0)
-        lon = float(lon_r.get("@value", 0) if isinstance(lon_r, dict) else lon_r or 0)
-    except (ValueError, TypeError):
-        pass
-    return lat, lon
+        latitude = float(scalar(geo.get("schema:latitude")))
+        longitude = float(scalar(geo.get("schema:longitude")))
+    except (TypeError, ValueError):
+        latitude, longitude = None, None
+    return latitude, longitude, address
 
 
-def extraire_commune(item):
-    """Extrait la commune depuis schema:address."""
-    loc = item.get("isLocatedAt", {})
-    if isinstance(loc, list):
-        loc = loc[0]
-    addr = loc.get("schema:address", {}) if isinstance(loc, dict) else {}
-    if isinstance(addr, list):
-        addr = addr[0]
-    if isinstance(addr, dict):
-        return str(addr.get("schema:addressLocality", "") or "").strip().lower()
-    return ""
-
-
-def extraire_code_postal(item):
-    """Extrait le code postal depuis schema:address."""
-    loc = item.get("isLocatedAt", {})
-    if isinstance(loc, list):
-        loc = loc[0]
-    addr = loc.get("schema:address", {}) if isinstance(loc, dict) else {}
-    if isinstance(addr, list):
-        addr = addr[0]
-    if isinstance(addr, dict):
-        return str(addr.get("schema:postalCode", "") or "").strip()
-    return ""
-
-
-def extraire_categorie(item):
-    """Determine la categorie normalisee depuis les types DATAtourisme."""
+def category(item):
     types = item.get("@type", [])
-    if isinstance(types, str):
-        types = [types]
-
-    # Passage 1 : correspondance directe
-    for t in types:
-        t_clean = t.split(":")[-1].split("#")[-1]
-        if t_clean in CATEGORIES:
-            return CATEGORIES[t_clean], t_clean
-
-    # Passage 2 : correspondance par sous-chaine
-    for t in types:
-        t_lower = t.lower()
-        for key, val in CATEGORIES.items():
-            if key.lower() in t_lower:
-                return val, key
-
+    types = [types] if isinstance(types, str) else types
+    cleaned = [str(value).split(":")[-1].split("#")[-1] for value in types]
+    for value in cleaned:
+        if value in CATEGORIES:
+            return CATEGORIES[value], value
+    for value in cleaned:
+        for source, normalized in CATEGORIES.items():
+            if source.lower() in value.lower():
+                return normalized, source
     return "Autre", "PointOfInterest"
 
 
-def extraire_telephone(item):
-    """Extrait le premier numero de telephone disponible."""
-    contact = item.get("hasContact", [])
-    if isinstance(contact, list) and contact:
-        contact = contact[0]
-    if isinstance(contact, dict):
-        tel = contact.get("schema:telephone", "") or contact.get("foaf:phone", "")
-        return str(tel).strip()[:50] if tel else None
-    return None
+def contact_fields(item):
+    contact = first_dict(item.get("hasContact"))
+    telephone = scalar(contact.get("schema:telephone") or contact.get("foaf:phone"))
+    website = scalar(contact.get("foaf:homepage") or contact.get("schema:url"))
+    return telephone[:50] or None, website[:500] or None
 
 
-def extraire_site_web(item):
-    """Extrait l'URL du site web."""
-    contact = item.get("hasContact", [])
-    if isinstance(contact, list) and contact:
-        contact = contact[0]
-    if isinstance(contact, dict):
-        url = contact.get("foaf:homepage", "") or contact.get("schema:url", "")
-        return str(url).strip()[:500] if url else None
-    return None
+def media_fields(item):
+    """Extrait la photo principale officielle et son crédit DATAtourisme."""
+    representation = first_dict(item.get("hasMainRepresentation") or item.get("hasRepresentation"))
+    resource = first_dict(representation.get("ebucore:hasRelatedResource"))
+    image_url = scalar(resource.get("ebucore:locator"))
+    annotation = first_dict(representation.get("ebucore:hasAnnotation"))
+    credit = scalar(annotation.get("credits"))
+    if not image_url.lower().startswith(("https://", "http://")):
+        image_url = ""
+    return image_url[:2000] or None, credit[:500] or None
 
 
-def extraire_date_maj(item):
-    """Extrait la date de derniere mise a jour."""
-    date = item.get("lastUpdate") or item.get("dc:date")
-    if date:
-        try:
-            return pd.to_datetime(str(date))
-        except Exception:
-            pass
-    return None
-
-
-# -- Etape 3 : Extraction Silver -----------------------------------------------
-
-print("\nExtraction et normalisation des champs...")
-
-pois_silver = []
-erreurs     = 0
-
-for item in graph:
+def updated_at(item):
+    raw = scalar(item.get("lastUpdate") or item.get("dc:date"))
+    if not raw:
+        return None
     try:
-        nom = extraire_nom(item)
-        if not nom or len(nom) < 2:
-            continue
-
-        lat, lon = extraire_coordonnees(item)
-        if not lat or not lon or lat == 0 or lon == 0:
-            continue
-
-        # Filtre geographique Pays de la Loire
-        if not (LAT_MIN <= lat <= LAT_MAX and LON_MIN <= lon <= LON_MAX):
-            continue
-
-        categorie, sous_cat = extraire_categorie(item)
-        commune             = extraire_commune(item)
-        code_postal         = extraire_code_postal(item)
-        telephone           = extraire_telephone(item)
-        site_web            = extraire_site_web(item)
-        date_maj            = extraire_date_maj(item)
-
-        pois_silver.append({
-            "nom"           : nom[:500],
-            "categorie"     : categorie,
-            "sous_categorie": sous_cat[:100] if sous_cat else None,
-            "commune"       : commune[:100],
-            "code_postal"   : code_postal[:10],
-            "latitude"      : lat,
-            "longitude"     : lon,
-            "telephone"     : telephone,
-            "site_web"      : site_web,
-            "region"        : "Pays de la Loire",
-            "source"        : "datatourisme",
-            "date_maj"      : date_maj,
-        })
-    except Exception:
-        erreurs += 1
-        continue
-
-print(f"  {len(pois_silver)} POI extraits ({erreurs} erreurs ignorees)")
-
-df_silver = pd.DataFrame(pois_silver)
-avant     = len(df_silver)
-df_silver = df_silver.drop_duplicates(subset=["nom", "commune"])
-print(f"  Doublons supprimes : {avant} -> {len(df_silver)}")
-
-print("\n  Repartition par categorie :")
-print(df_silver["categorie"].value_counts().to_string())
+        value = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        return value.astimezone(timezone.utc).replace(tzinfo=None) if value.tzinfo else value
+    except ValueError:
+        return None
 
 
-# -- Calcul d'un indicateur technique de qualite source (0-10) -----------------
-# Ce score n'est pas une note utilisateur et ne doit pas etre affiche comme tel.
-# Source des donnees : uniquement ce qu'on a dans DATAtourisme.
-
-print("\nCalcul du score de popularite...")
-
-seuil_rare      = 0.05 * len(df_silver)  # categorie < 5% du total = categorie rare
-cat_counts      = df_silver["categorie"].value_counts()
-cats_rares      = set(cat_counts[cat_counts < seuil_rare].index)
-date_limite_maj = datetime.now() - timedelta(days=180)
+def department_code(postal_code, latitude):
+    digits = re.sub(r"\D", "", postal_code or "")
+    if len(digits) < 5:
+        return None
+    if digits.startswith("20"):
+        return "2A" if latitude is not None and latitude < 42.25 else "2B"
+    return digits[:2]
 
 
-def calculer_score(row):
-    """
-    Calcule un score de popularite synthetique de 0 a 10.
-    Criteres positifs : presence de contacts, fraicheur des donnees, rarete de categorie.
-    """
-    score = 0.0
-    if pd.notna(row.get("site_web"))  and row["site_web"]:
-        score += 3.0
-    if pd.notna(row.get("telephone")) and row["telephone"]:
-        score += 2.0
-    if row.get("categorie") in cats_rares:
-        # Valorise les POI dans des categories peu representees (Culture, Nature, etc.)
-        score += 2.0
-    if pd.notna(row.get("date_maj")):
-        try:
-            if pd.to_datetime(row["date_maj"]).replace(tzinfo=None) > date_limite_maj:
-                score += 3.0
-        except Exception:
-            pass
-    return round(min(score, 10.0), 2)
+def administrative_reference():
+    try:
+        deps = requests.get(
+            "https://geo.api.gouv.fr/departements?fields=nom,code,codeRegion", timeout=30
+        )
+        deps.raise_for_status()
+        regions = requests.get("https://geo.api.gouv.fr/regions?fields=nom,code", timeout=30)
+        regions.raise_for_status()
+        names = {str(row["code"]): row["nom"] for row in regions.json()}
+        return {
+            str(row["code"]): (row["nom"], names.get(str(row.get("codeRegion")), "France"))
+            for row in deps.json()
+        }
+    except Exception as exc:
+        print(f"Referentiel administratif indisponible ({exc}); codes postaux conserves.")
+        return {}
 
 
-df_silver["score_qualite_source"] = df_silver.apply(calculer_score, axis=1)
+def iter_items(path):
+    if zipfile.is_zipfile(path):
+        with zipfile.ZipFile(path) as archive:
+            members = [
+                info for info in archive.infolist()
+                if not info.is_dir()
+                and info.filename.lower().endswith((".json", ".jsonld"))
+                and "/objects/" in f"/{info.filename.lower()}"
+            ]
+            if not members:
+                raise RuntimeError("L'archive DATAtourisme ne contient aucun fichier JSON")
+            total_size = sum(info.file_size for info in members)
+            print(f"Archive DATAtourisme: {len(members):,} POI, {total_size / 1024**3:.2f} Gio JSON")
+            for info in members:
+                with archive.open(info) as source:
+                    item = json.load(source)
+                    if isinstance(item, dict):
+                        yield item
+        return
+    with open(path, "rb") as source:
+        first = source.read(1)
+        while first in b" \r\n\t":
+            first = source.read(1)
+        source.seek(0)
+        prefix = "item" if first == b"[" else "@graph.item"
+        yield from ijson.items(source, prefix)
 
-# Normalisation 0-10
-score_max = df_silver["score_qualite_source"].max()
-if score_max > 0:
-    df_silver["score_qualite_source"] = (
-        df_silver["score_qualite_source"] / score_max * 10
-    ).round(2)
 
-print(f"  Score technique moyen : {df_silver['score_qualite_source'].mean():.2f} / 10")
-print(f"  POI avec score > 0 : {(df_silver['score_qualite_source'] > 0).sum()}")
+def flush(connection, bronze_rows, silver_rows):
+    if bronze_rows:
+        connection.execute(
+            text(
+                """INSERT INTO bronze.poi_raw
+                (json_brut, identifiant, nom, type_raw, commune, latitude_raw,
+                 longitude_raw, region)
+                VALUES (:json, :id, :nom, :type, :commune, :lat, :lon, :region)"""
+            ),
+            bronze_rows,
+        )
+        bronze_rows.clear()
+    if silver_rows:
+        connection.execute(
+            text(
+                """INSERT INTO silver.poi
+                (nom, categorie, sous_categorie, commune, departement, code_postal,
+                 latitude, longitude, telephone, site_web, image_url, image_credit, note_moyenne,
+                 score_qualite_source, region, source, date_maj)
+                VALUES (:nom, :categorie, :sous_categorie, :commune, :departement,
+                        :code_postal, :latitude, :longitude, :telephone, :site_web,
+                        :image_url, :image_credit,
+                        NULL, :score, :region, 'datatourisme', :date_maj)"""
+            ),
+            silver_rows,
+        )
+        silver_rows.clear()
 
 
-# -- Etape 4 : Insertion Silver ------------------------------------------------
+print("=" * 60)
+print("SCRIPT 02 - DATAtourisme France metropolitaine")
+print("=" * 60)
 
-print("\nInsertion dans silver.poi...")
-with engine.connect() as conn:
-    conn.execute(text("TRUNCATE TABLE silver.poi RESTART IDENTITY CASCADE"))
-    for _, row in df_silver.iterrows():
-        conn.execute(text("""
-            INSERT INTO silver.poi
-              (nom, categorie, sous_categorie, commune, code_postal, departement,
-               latitude, longitude, telephone, site_web, note_moyenne, score_qualite_source,
-               region, source, date_maj)
-            VALUES (:nom, :cat, :scat, :com, :cp, :dep, :lat, :lon,
-                    :tel, :web, NULL, :score_source, :reg, :src, :dmaj)
-        """), {
-            "nom" : row["nom"],
-            "cat" : row["categorie"],
-            "scat": row["sous_categorie"],
-            "com" : row["commune"],
-            "cp"  : row.get("code_postal"),
-            "dep" : None,
-            "lat" : row["latitude"],
-            "lon" : row["longitude"],
-            "tel" : row["telephone"],
-            "web" : row["site_web"],
-            "score_source": float(row["score_qualite_source"]),
-            "reg" : row["region"],
-            "src" : row["source"],
-            "dmaj": row["date_maj"],
-        })
-    conn.commit()
+temp_path = None
+try:
+    with requests.get(
+        URL_DT,
+        headers={"User-Agent": "Wandrail-M1/2.0 (ingestion open data)"},
+        timeout=(30, 600),
+        stream=True,
+    ) as response:
+        response.raise_for_status()
+        content_type = response.headers.get("content-type", "")
+        if not any(kind in content_type.lower() for kind in ("json", "zip", "octet-stream")):
+            raise RuntimeError(f"Type de reponse DATAtourisme inattendu: {content_type}")
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as output:
+            temp_path = output.name
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    output.write(chunk)
 
-nb = pd.read_sql("SELECT COUNT(*) as n FROM silver.poi", engine).iloc[0]["n"]
-print(f"  {nb} POI dans silver.poi")
+    reference = administrative_reference()
+    engine = get_engine()
+    bronze_rows, silver_rows = [], []
+    seen_ids, seen_fallback = set(), set()
+    category_counts = Counter()
+    bronze_count = silver_count = rejected_geo = duplicates = 0
+    recent_limit = datetime.now() - timedelta(days=180)
 
-print("\nScript 02 termine.")
+    with engine.begin() as connection:
+        connection.execute(text("TRUNCATE TABLE bronze.poi_raw RESTART IDENTITY"))
+        connection.execute(text("TRUNCATE TABLE silver.poi RESTART IDENTITY CASCADE"))
+
+        for item in iter_items(temp_path):
+            if not isinstance(item, dict):
+                continue
+            poi_name = label(item)
+            latitude, longitude, address = location(item)
+            identifier = scalar(item.get("@id"))
+            types = item.get("@type", [])
+            types = [types] if isinstance(types, str) else types
+            city = scalar(address.get("schema:addressLocality")).lower()
+            postal_code = scalar(address.get("schema:postalCode"))[:10]
+
+            bronze_rows.append(
+                {
+                    "json": json.dumps(item, ensure_ascii=False, default=str),
+                    "id": identifier,
+                    "nom": poi_name[:200],
+                    "type": "|".join(map(str, types[:5]))[:200],
+                    "commune": city[:100],
+                    "lat": str(latitude or ""),
+                    "lon": str(longitude or ""),
+                    "region": "France",
+                }
+            )
+            bronze_count += 1
+
+            if not poi_name or latitude is None or longitude is None:
+                if len(bronze_rows) >= BATCH_SIZE:
+                    flush(connection, bronze_rows, silver_rows)
+                continue
+            if not (LAT_MIN <= latitude <= LAT_MAX and LON_MIN <= longitude <= LON_MAX):
+                rejected_geo += 1
+                if len(bronze_rows) >= BATCH_SIZE:
+                    flush(connection, bronze_rows, silver_rows)
+                continue
+
+            fallback_key = (poi_name.casefold(), round(latitude, 5), round(longitude, 5))
+            if (identifier and identifier in seen_ids) or fallback_key in seen_fallback:
+                duplicates += 1
+                if len(bronze_rows) >= BATCH_SIZE:
+                    flush(connection, bronze_rows, silver_rows)
+                continue
+            if identifier:
+                seen_ids.add(identifier)
+            seen_fallback.add(fallback_key)
+
+            normalized_category, subcategory = category(item)
+            telephone, website = contact_fields(item)
+            image_url, image_credit = media_fields(item)
+            date_maj = updated_at(item)
+            raw_score = (3 if website else 0) + (2 if telephone else 0) + (
+                3 if date_maj and date_maj > recent_limit else 0
+            )
+            code_department = department_code(postal_code, latitude)
+            department, region = reference.get(code_department, (code_department, "France"))
+            silver_rows.append(
+                {
+                    "nom": poi_name[:500],
+                    "categorie": normalized_category,
+                    "sous_categorie": subcategory[:100],
+                    "commune": city[:100],
+                    "departement": department,
+                    "code_postal": postal_code,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "telephone": telephone,
+                    "site_web": website,
+                    "image_url": image_url,
+                    "image_credit": image_credit,
+                    "score": round(raw_score / 8 * 10, 2),
+                    "region": region,
+                    "date_maj": date_maj,
+                }
+            )
+            silver_count += 1
+            category_counts[normalized_category] += 1
+
+            if len(bronze_rows) >= BATCH_SIZE or len(silver_rows) >= BATCH_SIZE:
+                flush(connection, bronze_rows, silver_rows)
+            if bronze_count % 25000 == 0:
+                print(f"  {bronze_count:,} POI lus; {silver_count:,} POI Silver")
+
+        flush(connection, bronze_rows, silver_rows)
+
+    if bronze_count == 0:
+        raise RuntimeError("Le flux DATAtourisme ne contient aucun POI")
+    print(f"Bronze: {bronze_count:,} POI complets")
+    print(f"Silver: {silver_count:,} POI geocodes et dedupliques")
+    print(f"Hors perimetre ferroviaire: {rejected_geo:,}; doublons: {duplicates:,}")
+    print("Categories:", dict(category_counts.most_common()))
+finally:
+    if temp_path and os.path.exists(temp_path):
+        os.remove(temp_path)
+
+print("Script 02 termine.")

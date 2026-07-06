@@ -11,13 +11,16 @@ sys.stdout.reconfigure(encoding="utf-8")
 load_dotenv()
 
 engine = create_engine(
-    f"postgresql://{os.getenv('DB_USER', 'postgres')}:{os.getenv('DB_PASSWORD', '00000')}"
+    f"postgresql+psycopg://{os.getenv('DB_USER', 'postgres')}:{os.getenv('DB_PASSWORD', '00000')}"
     f"@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '5434')}"
     f"/{os.getenv('DB_NAME', 'tourisme_train')}"
 )
 
 MIGRATION = """
 ALTER TABLE silver.poi ADD COLUMN IF NOT EXISTS score_qualite_source FLOAT;
+ALTER TABLE silver.poi ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE silver.poi ADD COLUMN IF NOT EXISTS image_credit TEXT;
+ALTER TABLE userapp.users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}'::jsonb;
 
 UPDATE silver.poi
 SET score_qualite_source = note_moyenne,
@@ -46,6 +49,13 @@ CREATE INDEX IF NOT EXISTS idx_poi_enrichi_name_distance
     ON silver.poi_enrichi(nom_gare, distance_gare_km);
 CREATE INDEX IF NOT EXISTS idx_recommandations_profile_rank
     ON gold.recommandations(id_profil, rang);
+
+ALTER TABLE silver.population DROP CONSTRAINT IF EXISTS population_commune_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_population_code_commune_unique
+    ON silver.population(code_commune)
+    WHERE code_commune IS NOT NULL AND code_commune <> '';
+CREATE INDEX IF NOT EXISTS idx_population_commune
+    ON silver.population(commune);
 """
 
 with engine.begin() as connection:

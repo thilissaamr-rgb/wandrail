@@ -8,7 +8,7 @@ Présenter Wandrail comme une plateforme unique avec deux parcours : un service 
 
 > Le transport représente la majorité de l'empreinte carbone du tourisme. Pourtant, les voyageurs connaissent mal les destinations accessibles en train et l'offre touristique autour des gares. Wandrail transforme des données ouvertes en recommandations compréhensibles et en indicateurs territoriaux.
 
-Montrer rapidement l'accueil et annoncer le périmètre honnête : 136 gares et 26 099 POI dans les Pays de la Loire.
+Montrer rapidement l'accueil et annoncer le périmètre honnête : France métropolitaine, données DATAtourisme nationales et gares voyageurs SNCF.
 
 ## 0:35 - 1:35 | Espace Voyageur
 
@@ -91,7 +91,7 @@ Présenter le carbone comme un scénario de 1 000 voyageurs, jamais comme un imp
 
 ### Pourquoi KMeans si les clusters sont imparfaits ?
 
-Il s'agit d'une exploration de structure des POI. La silhouette est acceptable mais l'optimum en borne haute et le déséquilibre des catégories limitent l'interprétation. Le modèle est conservé comme prototype explicable, avec une amélioration prévue sur les catégories.
+Il s'agit d'une exploration de structure des POI. Sur le jeu national, k=14 maximise la silhouette (0,324) dans la grille 2–15. Le déséquilibre des catégories limite encore l'interprétation ; le modèle reste un prototype explicable.
 
 ### Pourquoi pas de vraie Precision@5 ?
 
@@ -101,6 +101,6 @@ Parce qu'aucun historique de clic ou jugement humain n'existe. Calculer cette m�
 
 Non. C'est une estimation comparative basée sur des facteurs moyens et une distance. Elle sert à sensibiliser et à comparer des scénarios, pas à produire un bilan carbone certifié.
 
-### Pourquoi seulement les Pays de la Loire ?
+### Comment le passage à l’échelle nationale est-il maîtrisé ?
 
-Le périmètre régional permet de valider la chaîne complète et la qualité avant une extension nationale, qui nécessiterait PostGIS, des traitements incrémentaux et des tests de charge.
+Le flux ZIP national est lu en streaming et inséré par lots. L’association POI–gares utilise un index BallTree plutôt qu’un produit cartésien. Les indicateurs restent calculés depuis la base et des tests de charge demeurent nécessaires avant une exploitation à fort trafic.
