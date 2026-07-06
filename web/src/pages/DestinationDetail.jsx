@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   MapContainer,
@@ -8,6 +8,7 @@ import {
   Circle,
   CircleMarker,
   Polyline,
+  useMap,
 } from 'react-leaflet'
 import L from 'leaflet'
 import { api } from '../lib/api'
@@ -705,25 +706,47 @@ export default function DestinationDetail() {
                   </Marker>
                 ))}
 
-                {/* Trace de l'itineraire : vrai chemin pieton OSRM, sinon ligne directe */}
+                {/* Trace itineraire style Google Maps : contour blanc + trait bleu epais */}
                 {routeGeo ? (
-                  <Polyline positions={routeGeo} pathOptions={{ color: '#7c3aed', weight: 4, opacity: 0.9 }} />
+                  <>
+                    <Polyline positions={routeGeo} pathOptions={{ color: '#ffffff', weight: 9, opacity: 0.95 }} />
+                    <Polyline positions={routeGeo} pathOptions={{ color: '#1F6FEB', weight: 5, opacity: 1 }} />
+                  </>
                 ) : itinPoints.length > 0 ? (
-                  <Polyline positions={linePositions} pathOptions={{ color: '#7c3aed', weight: 3, dashArray: '6 6' }} />
+                  <>
+                    <Polyline positions={linePositions} pathOptions={{ color: '#ffffff', weight: 8, opacity: 0.9 }} />
+                    <Polyline positions={linePositions} pathOptions={{ color: '#1F6FEB', weight: 4, dashArray: '8 6' }} />
+                  </>
                 ) : null}
                 {itinPoints.map((pos, i) => (
                   <CircleMarker
                     key={`it-${i}`}
                     center={pos}
-                    radius={9}
-                    pathOptions={{ color: '#fff', weight: 2, fillColor: '#7c3aed', fillOpacity: 1 }}
+                    radius={11}
+                    pathOptions={{ color: '#fff', weight: 3, fillColor: '#1F6FEB', fillOpacity: 1 }}
                   >
                     <Popup>
-                      Étape {i + 1} : {cleanPoiName(itinerary[i].nom)}
+                      <strong>Étape {i + 1}</strong><br />{cleanPoiName(itinerary[i].nom)}
                     </Popup>
                   </CircleMarker>
                 ))}
+                {/* Auto-zoom sur le trajet complet des qu il y a un itineraire */}
+                <FitToRoute
+                  positions={routeGeo || (itinPoints.length > 0 ? linePositions : null)}
+                  fallbackCenter={center}
+                />
+                {/* Ecoute les events pan de la navigation etape par etape */}
+                <PanListener defaultCenter={center} defaultZoom={13} />
               </MapContainer>
+              {itinPoints.length > 0 && (
+                <NavigationPanel
+                  itinerary={itinerary}
+                  center={center}
+                  legs={useRealLegs ? routeInfo.legs : legs}
+                  totalKm={displayKm}
+                  totalMin={displayMin}
+                />
+              )}
             </div>
           </div>
         )}
@@ -852,6 +875,131 @@ export default function DestinationDetail() {
           </aside>
         </div>
       </div>
+    </div>
+  )
+}
+
+// Ecoute l event global 'wandrail:pan-to' pour recentrer / zoomer la carte
+// depuis le NavigationPanel qui vit HORS du MapContainer.
+function PanListener({ defaultCenter, defaultZoom }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!map) return
+    const handler = (e) => {
+      const d = e.detail || {}
+      if (d.reset) {
+        map.setView(defaultCenter, defaultZoom, { animate: true })
+      } else if (d.center) {
+        map.setView(d.center, d.zoom || 17, { animate: true, duration: 0.6 })
+      }
+    }
+    window.addEventListener('wandrail:pan-to', handler)
+    return () => window.removeEventListener('wandrail:pan-to', handler)
+  }, [map, defaultCenter, defaultZoom])
+  return null
+}
+
+// Ajuste la vue Leaflet pour englober tout le trajet des qu il change.
+// Utilise fitBounds avec padding pour laisser respirer le contenu.
+function FitToRoute({ positions, fallbackCenter }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!map) return
+    if (positions && positions.length >= 2) {
+      const bounds = L.latLngBounds(positions)
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16, animate: true, duration: 0.6 })
+    } else if (fallbackCenter) {
+      map.setView(fallbackCenter, 14, { animate: true })
+    }
+  }, [map, positions ? positions.length : 0, positions ? positions[positions.length - 1]?.toString() : null])
+  return null
+}
+
+// Panneau navigation type Google Maps : totaux + etape en cours + boutons
+// Precedent / Suivant qui centrent la carte sur chaque etape successive.
+function NavigationPanel({ itinerary, center, legs, totalKm, totalMin }) {
+  const [step, setStep] = useState(0)
+  const [active, setActive] = useState(false)
+  const mapRef = useRef(null)
+
+  const goTo = (i) => {
+    if (i < 0 || i > itinerary.length) return
+    setStep(i)
+    setActive(true)
+    const target = i === 0 ? center : [itinerary[i - 1].latitude, itinerary[i - 1].longitude]
+    // On dispatche un event custom capte par le composant carte
+    window.dispatchEvent(new CustomEvent('wandrail:pan-to', { detail: { center: target, zoom: 17 } }))
+  }
+
+  const totalStr = `${(totalKm || 0).toFixed(1)} km · ~${totalMin || 0} min à pied`
+
+  return (
+    <div ref={mapRef} className="mt-3 rounded-2xl border border-line bg-card p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-white shadow-md">
+            <Icon name="map" className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="text-sm font-black text-ink">Navigation à pied</div>
+            <div className="text-xs text-muted">{totalStr} · {itinerary.length} étape{itinerary.length > 1 ? 's' : ''}</div>
+          </div>
+        </div>
+        {!active ? (
+          <button
+            type="button"
+            onClick={() => goTo(1)}
+            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:bg-blue-700 active:scale-95"
+          >
+            Démarrer ▶
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => goTo(Math.max(0, step - 1))}
+              disabled={step <= 0}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-card text-ink transition hover:border-blue-500 disabled:opacity-40"
+            >
+              <Icon name="arrowLeft" className="h-4 w-4" />
+            </button>
+            <span className="text-xs font-bold text-ink">
+              {step} / {itinerary.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => goTo(Math.min(itinerary.length, step + 1))}
+              disabled={step >= itinerary.length}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-card text-ink transition hover:border-blue-500 disabled:opacity-40"
+            >
+              <Icon name="arrowRight" className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setActive(false); setStep(0); window.dispatchEvent(new CustomEvent('wandrail:pan-to', { detail: { reset: true } })) }}
+              className="ml-2 text-xs font-semibold text-muted hover:text-rose-500"
+            >
+              Arrêter
+            </button>
+          </div>
+        )}
+      </div>
+      {active && step > 0 && step <= itinerary.length && (
+        <div className="mt-3 rounded-xl bg-blue-50 p-3 dark:bg-blue-950/40">
+          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-blue-700 dark:text-blue-300">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white">{step}</span>
+            Étape {step} sur {itinerary.length}
+          </div>
+          <div className="mt-2 text-sm font-bold text-ink">
+            {cleanPoiName(itinerary[step - 1].nom)}
+          </div>
+          {legs[step - 1] && (
+            <div className="mt-1 text-xs text-muted">
+              {legs[step - 1].km.toFixed(2)} km depuis {step === 1 ? 'la gare' : "l'étape précédente"} · ~{legs[step - 1].min} min à pied
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
