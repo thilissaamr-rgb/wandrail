@@ -177,7 +177,12 @@ python scripts/07_ml_recommandation.py
 python scripts/11_data_quality_migration.py
 ```
 
-Ou restaurer directement le dump : `psql wandrail < data/dumps/wandrail_silver_gold.sql`
+Puis initialiser les tables applicatives (utilisateurs, favoris) :
+```bash
+psql wandrail < scripts/setup_app_tables.sql
+```
+
+Ou restaurer directement le dump complet : `psql wandrail < data/dumps/wandrail_silver_gold.sql`
 
 ### API
 
@@ -227,12 +232,12 @@ Ce projet valide les critères du **RNCP40167 — Expert en ingénierie de donn�
 | Livrable | Emplacement |
 |---|---|
 | Code complet sur Git | ce dépôt |
-| Pipeline data documenté | [`docs/audit_donnees.md`](docs/audit_donnees.md) · [`api/analyst.py`](api/analyst.py) `build_pipeline` |
+| Pipeline data documenté | [`docs/audits/audit_donnees.md`](docs/audits/audit_donnees.md) · [`api/analyst.py`](api/analyst.py) `build_pipeline` |
 | Modèles IA entraînés (.pkl) | [`models/kmeans_poi.pkl`](models/) · [`models/knn_recommandation.pkl`](models/) |
 | Métriques évaluation | [`docs/metriques_kmeans.json`](docs/metriques_kmeans.json) · [`docs/metriques_knn.json`](docs/metriques_knn.json) |
 | Scénario démo 5 min | [`docs/demo_jury.md`](docs/demo_jury.md) |
-| Audit national | [`docs/audit_national_2026-07-05.md`](docs/audit_national_2026-07-05.md) |
-| Cahier des charges | [`docs/cahier_des_charges.pdf`](docs/cahier_des_charges.pdf) |
+| Audit national | [`docs/audits/audit_national_2026-07-05.md`](docs/audits/audit_national_2026-07-05.md) |
+| Cahier des charges | [`docs/references/cahier_des_charges.pdf`](docs/references/cahier_des_charges.pdf) |
 
 **Vidéo MVP** : *à ajouter — placeholder pour lien YouTube/Drive*
 
