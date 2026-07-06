@@ -99,11 +99,31 @@ async function fetchPlaceGallery(commune) {
       const r = await fetch(url)
       const j = await r.json()
       const page = Object.values(j?.query?.pages || {})[0]
+      // Filtre agressif : Wikipedia embarque enormement de cartes IGN/INSEE
+      // dans les articles communes (Occupation des sols, Hydrographie,
+      // Orthophoto, geologie...) qui ne sont PAS des photos.
+      // On garde uniquement les vraies photos.
+      const EXCLUDE = [
+        'commons-logo', 'icon', 'logo', 'flag', 'blason',
+        'carte', 'map', 'plan_de_', 'schema', 'graphique', 'diagram',
+        'orthophoto', 'ombrage', 'shaded', 'relief',
+        'coat_of_arms', 'wappen', 'gerb',
+        // INSEE / geologie France : -Sols, -Hydro, -argile, -Orthophoto
+        '-sols.', '-hydro.', '-orthophoto.', '-argile.', '-geologie',
+        'occupation_des_sols', 'usage_des_sols',
+      ]
+      const startsWithInseeCode = (t) => /^File:\d{5}[-_]/i.test(t) || /^Fichier:\d{5}[-_]/i.test(t)
       const files = (page?.images || [])
         .map((im) => im.title)
         .filter((t) => /\.(jpe?g|png|webp)$/i.test(t))
-        .filter((t) => !/(commons-logo|icon|flag|blason|logo|carte|map)/i.test(t))
+        .filter((t) => {
+          const low = t.toLowerCase()
+          if (EXCLUDE.some((k) => low.includes(k))) return false
+          if (startsWithInseeCode(t)) return false
+          return true
+        })
         .slice(0, 5)
+      const URL_EXCLUDE = /(sols\.|hydro\.|orthophoto|argile|geologie|carte|blason|ombrage|shaded|relief|occupation.des.sols)/i
       for (const file of files) {
         if (gallery.length >= 3) break
         try {
@@ -112,7 +132,8 @@ async function fetchPlaceGallery(commune) {
           ).then((r) => r.json())
           const infoPage = Object.values(info?.query?.pages || {})[0]
           const src = infoPage?.imageinfo?.[0]?.thumburl || infoPage?.imageinfo?.[0]?.url
-          if (src && !gallery.includes(src)) gallery.push(src)
+          // Deuxieme filtre sur l URL finale : Wikipedia peut renommer le fichier
+          if (src && !URL_EXCLUDE.test(src) && !gallery.includes(src)) gallery.push(src)
         } catch {
           /* ignore */
         }
