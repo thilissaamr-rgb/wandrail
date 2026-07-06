@@ -89,6 +89,30 @@ function haversineKm(a, b) {
 
 const storageKey = (nom) => `wandrail:itin:${nom}`
 
+// Traduit un maneuver OSRM en instruction humaine francaise turn-by-turn.
+function formatManeuver(maneuver, streetName) {
+  const t = maneuver.type || ''
+  const m = maneuver.modifier || ''
+  const rue = streetName ? ` sur ${streetName}` : ''
+  if (t === 'depart') return `Départ${rue}`
+  if (t === 'arrive') return `Arrivée${rue}`
+  const MAP_MODIFIER = {
+    left: 'gauche', right: 'droite',
+    'slight left': 'légèrement à gauche', 'slight right': 'légèrement à droite',
+    'sharp left': 'nettement à gauche', 'sharp right': 'nettement à droite',
+    straight: 'tout droit', uturn: 'demi-tour',
+  }
+  const dir = MAP_MODIFIER[m] || m
+  if (t === 'turn') return `Tourner à ${dir}${rue}`
+  if (t === 'continue') return `Continuer${rue}`
+  if (t === 'roundabout' || t === 'rotary') return `Prendre le rond-point${rue}`
+  if (t === 'fork') return `Prendre à ${dir}${rue}`
+  if (t === 'merge') return `S'insérer${rue}`
+  if (t === 'end of road') return `Au bout de la route, ${dir}${rue}`
+  if (t === 'new name') return `Continuer${rue}`
+  return `${dir || t}${rue}`.trim()
+}
+
 // Lien Google Maps "directions" a pied : gare -> etapes intermediaires -> derniere.
 function gmapsDirectionsUrl(center, points) {
   const origin = `${center[0]},${center[1]}`
@@ -114,6 +138,8 @@ export default function DestinationDetail() {
   const [schedules, setSchedules] = useState(null)
   const [mobilites, setMobilites] = useState(null)
   const [mobiliteTab, setMobiliteTab] = useState(null) // 'velo' | 'bus' | 'tram' | null
+  const [myPosition, setMyPosition] = useState(null) // [lat, lon] si geoloc active
+  const [geoError, setGeoError] = useState(null)
   // Galerie photos Wikipedia de la commune (partagee entre hero + POI cards)
   const communeGallery = usePlaceGallery(data?.destination?.commune || nom)
 
@@ -232,16 +258,30 @@ export default function DestinationDetail() {
     }
     const coordStr = [c, ...pts].map(([la, lo]) => `${lo},${la}`).join(';')
     let cancelled = false
-    fetch(`https://router.project-osrm.org/route/v1/foot/${coordStr}?overview=full&geometries=geojson`)
+    // steps=true : recupere les instructions turn-by-turn par tronçon
+    fetch(`https://router.project-osrm.org/route/v1/foot/${coordStr}?overview=full&geometries=geojson&steps=true`)
       .then((r) => r.json())
       .then((j) => {
         if (cancelled) return
         const route = j.code === 'Ok' && j.routes && j.routes[0]
         if (route && route.geometry?.coordinates?.length > 1) {
-          // On garde la distance routiere reelle, mais on recalcule le temps a
-          // pied (le serveur de demo OSRM renvoie des durees de type voiture).
           const km = route.distance / 1000
           setRouteGeo(route.geometry.coordinates.map(([lo, la]) => [la, lo]))
+          // Aggregate all turn-by-turn steps across all legs
+          const allSteps = []
+          for (const leg of route.legs || []) {
+            for (const step of leg.steps || []) {
+              const m = step.maneuver || {}
+              allSteps.push({
+                instruction: formatManeuver(m, step.name),
+                distance: step.distance,
+                street: step.name || '',
+                coord: m.location ? [m.location[1], m.location[0]] : null,
+                type: m.type || '',
+                modifier: m.modifier || '',
+              })
+            }
+          }
           setRouteInfo({
             km,
             min: Math.round(km * WALK_MIN_PER_KM),
@@ -249,6 +289,7 @@ export default function DestinationDetail() {
               const legKm = l.distance / 1000
               return { km: legKm, min: Math.round(legKm * WALK_MIN_PER_KM) }
             }),
+            steps: allSteps,
           })
         } else {
           setRouteGeo(null)
@@ -730,6 +771,11 @@ export default function DestinationDetail() {
                     </Popup>
                   </CircleMarker>
                 ))}
+                {myPosition && (
+                  <Marker position={myPosition} icon={MY_POSITION_ICON}>
+                    <Popup>Ma position</Popup>
+                  </Marker>
+                )}
                 {/* Auto-zoom sur le trajet complet des qu il y a un itineraire */}
                 <FitToRoute
                   positions={routeGeo || (itinPoints.length > 0 ? linePositions : null)}
@@ -738,6 +784,32 @@ export default function DestinationDetail() {
                 {/* Ecoute les events pan de la navigation etape par etape */}
                 <PanListener defaultCenter={center} defaultZoom={13} />
               </MapContainer>
+              {/* Barre d actions carte : geoloc + zoom */}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!navigator.geolocation) { setGeoError('Géolocalisation non supportée'); return }
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        const p = [pos.coords.latitude, pos.coords.longitude]
+                        setMyPosition(p)
+                        setGeoError(null)
+                        window.dispatchEvent(new CustomEvent('wandrail:pan-to', { detail: { center: p, zoom: 17 } }))
+                      },
+                      (err) => setGeoError(err.message || 'Position indisponible'),
+                      { enableHighAccuracy: true, timeout: 8000 },
+                    )
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg border border-line bg-card px-3 py-2 text-xs font-bold text-ink transition hover:border-blue-500 hover:text-blue-600"
+                >
+                  <span className="h-2.5 w-2.5 rounded-full bg-blue-500 ring-2 ring-blue-500/30" />
+                  Ma position
+                </button>
+                {geoError && (
+                  <span className="text-[11px] text-rose-500">⚠ {geoError}</span>
+                )}
+              </div>
               {itinPoints.length > 0 && (
                 <NavigationPanel
                   itinerary={itinerary}
@@ -745,6 +817,7 @@ export default function DestinationDetail() {
                   legs={useRealLegs ? routeInfo.legs : legs}
                   totalKm={displayKm}
                   totalMin={displayMin}
+                  steps={routeInfo?.steps || []}
                 />
               )}
             </div>
@@ -900,41 +973,52 @@ function PanListener({ defaultCenter, defaultZoom }) {
 }
 
 // Ajuste la vue Leaflet pour englober tout le trajet des qu il change.
-// Utilise fitBounds avec padding pour laisser respirer le contenu.
+// Padding reduit + maxZoom 18 pour un cadrage tres serre (style Google Maps).
 function FitToRoute({ positions, fallbackCenter }) {
   const map = useMap()
   useEffect(() => {
     if (!map) return
     if (positions && positions.length >= 2) {
       const bounds = L.latLngBounds(positions)
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16, animate: true, duration: 0.6 })
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 18, animate: true, duration: 0.6 })
     } else if (fallbackCenter) {
-      map.setView(fallbackCenter, 14, { animate: true })
+      map.setView(fallbackCenter, 15, { animate: true })
     }
   }, [map, positions ? positions.length : 0, positions ? positions[positions.length - 1]?.toString() : null])
   return null
 }
 
+// Icone "ma position" style Google Maps : point bleu avec halo pulsant.
+const MY_POSITION_ICON = L.divIcon({
+  className: '',
+  html: `<div style="position:relative;width:22px;height:22px">
+    <div style="position:absolute;inset:0;background:#3B82F6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 2px #3B82F6,0 4px 10px rgba(0,0,0,0.3)"></div>
+    <div style="position:absolute;inset:-8px;border:3px solid #3B82F6;border-radius:50%;opacity:0.35;animation:mypos 2s ease-out infinite"></div>
+    <style>@keyframes mypos{0%{transform:scale(0.5);opacity:0.7}100%{transform:scale(1.8);opacity:0}}</style>
+  </div>`,
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
+})
+
 // Panneau navigation type Google Maps : totaux + etape en cours + boutons
-// Precedent / Suivant qui centrent la carte sur chaque etape successive.
-function NavigationPanel({ itinerary, center, legs, totalKm, totalMin }) {
+// Precedent / Suivant + liste turn-by-turn OSRM (Tourner a droite, Continuer...).
+function NavigationPanel({ itinerary, center, legs, totalKm, totalMin, steps }) {
   const [step, setStep] = useState(0)
   const [active, setActive] = useState(false)
-  const mapRef = useRef(null)
+  const [showSteps, setShowSteps] = useState(false)
 
   const goTo = (i) => {
     if (i < 0 || i > itinerary.length) return
     setStep(i)
     setActive(true)
     const target = i === 0 ? center : [itinerary[i - 1].latitude, itinerary[i - 1].longitude]
-    // On dispatche un event custom capte par le composant carte
-    window.dispatchEvent(new CustomEvent('wandrail:pan-to', { detail: { center: target, zoom: 17 } }))
+    window.dispatchEvent(new CustomEvent('wandrail:pan-to', { detail: { center: target, zoom: 18 } }))
   }
 
   const totalStr = `${(totalKm || 0).toFixed(1)} km · ~${totalMin || 0} min à pied`
 
   return (
-    <div ref={mapRef} className="mt-3 rounded-2xl border border-line bg-card p-4 shadow-sm">
+    <div className="mt-3 rounded-2xl border border-line bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-white shadow-md">
@@ -948,7 +1032,7 @@ function NavigationPanel({ itinerary, center, legs, totalKm, totalMin }) {
         {!active ? (
           <button
             type="button"
-            onClick={() => goTo(1)}
+            onClick={() => { goTo(1); setShowSteps(true) }}
             className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white shadow-md transition hover:bg-blue-700 active:scale-95"
           >
             Démarrer ▶
@@ -976,7 +1060,7 @@ function NavigationPanel({ itinerary, center, legs, totalKm, totalMin }) {
             </button>
             <button
               type="button"
-              onClick={() => { setActive(false); setStep(0); window.dispatchEvent(new CustomEvent('wandrail:pan-to', { detail: { reset: true } })) }}
+              onClick={() => { setActive(false); setStep(0); setShowSteps(false); window.dispatchEvent(new CustomEvent('wandrail:pan-to', { detail: { reset: true } })) }}
               className="ml-2 text-xs font-semibold text-muted hover:text-rose-500"
             >
               Arrêter
@@ -997,6 +1081,42 @@ function NavigationPanel({ itinerary, center, legs, totalKm, totalMin }) {
             <div className="mt-1 text-xs text-muted">
               {legs[step - 1].km.toFixed(2)} km depuis {step === 1 ? 'la gare' : "l'étape précédente"} · ~{legs[step - 1].min} min à pied
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Liste turn-by-turn (instructions OSRM) */}
+      {steps && steps.length > 0 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setShowSteps((s) => !s)}
+            className="flex w-full items-center justify-between rounded-lg border border-line bg-card2 px-3 py-2 text-xs font-bold text-ink transition hover:border-blue-500"
+          >
+            <span className="flex items-center gap-2">
+              <Icon name="map" className="h-3.5 w-3.5" />
+              {steps.length} instructions détaillées
+            </span>
+            <Icon name={showSteps ? 'chevronDown' : 'chevronRight'} className="h-4 w-4" />
+          </button>
+          {showSteps && (
+            <ol className="mt-2 max-h-64 divide-y divide-line overflow-y-auto rounded-lg border border-line bg-card2/50">
+              {steps.map((s, i) => (
+                <li key={i} className="flex items-start gap-3 px-3 py-2.5">
+                  <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-[10px] font-black text-white">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-ink">{s.instruction}</div>
+                    {s.distance > 0 && (
+                      <div className="mt-0.5 text-[10px] text-muted">
+                        {s.distance < 1000 ? `${Math.round(s.distance)} m` : `${(s.distance / 1000).toFixed(1)} km`}
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
           )}
         </div>
       )}
