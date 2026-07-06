@@ -113,6 +113,28 @@ function formatManeuver(maneuver, streetName) {
   return `${dir || t}${rue}`.trim()
 }
 
+// Ouvre Google Maps directions a pied avec la position utilisateur en origine.
+// Fallback : ouvre juste la destination si la geoloc est refusee / indisponible.
+function openGoogleMapsRoute(destLat, destLon, destLabel) {
+  const dest = `${destLat},${destLon}`
+  const open = (origin) => {
+    const params = new URLSearchParams({
+      api: '1',
+      destination: dest,
+      travelmode: 'walking',
+    })
+    if (origin) params.set('origin', origin)
+    if (destLabel) params.set('destination_place_id', '') // force les coord
+    window.open(`https://www.google.com/maps/dir/?${params.toString()}`, '_blank', 'noopener,noreferrer')
+  }
+  if (!navigator.geolocation) return open(null)
+  navigator.geolocation.getCurrentPosition(
+    (pos) => open(`${pos.coords.latitude},${pos.coords.longitude}`),
+    () => open(null),
+    { enableHighAccuracy: true, timeout: 6000 },
+  )
+}
+
 // Lien Google Maps "directions" a pied : gare -> etapes intermediaires -> derniere.
 function gmapsDirectionsUrl(center, points) {
   const origin = `${center[0]},${center[1]}`
@@ -719,10 +741,9 @@ export default function DestinationDetail() {
               type={mobiliteTab}
               stations={mobilites?.[mobiliteTab === 'velo' ? 'velos' : mobiliteTab === 'bus' ? 'bus' : mobiliteTab === 'tram' ? 'trams' : 'ferries'] || []}
               onGoTo={(station) => {
-                // Ajoute la station comme étape dans l'itinéraire → OSRM trace la route
-                updateSelected([...(selected || []), station.nom_station])
-                const mapEl = document.getElementById('itineraire-map')
-                if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                if (station?.latitude && station?.longitude) {
+                  openGoogleMapsRoute(station.latitude, station.longitude, station.nom_station)
+                }
               }}
               onClose={() => setMobiliteTab(null)}
             />
@@ -747,18 +768,7 @@ export default function DestinationDetail() {
                   </Marker>
                 ))}
 
-                {/* Trace itineraire style Google Maps : contour blanc + trait bleu epais */}
-                {routeGeo ? (
-                  <>
-                    <Polyline positions={routeGeo} pathOptions={{ color: '#ffffff', weight: 9, opacity: 0.95 }} />
-                    <Polyline positions={routeGeo} pathOptions={{ color: '#1F6FEB', weight: 5, opacity: 1 }} />
-                  </>
-                ) : itinPoints.length > 0 ? (
-                  <>
-                    <Polyline positions={linePositions} pathOptions={{ color: '#ffffff', weight: 8, opacity: 0.9 }} />
-                    <Polyline positions={linePositions} pathOptions={{ color: '#1F6FEB', weight: 4, dashArray: '8 6' }} />
-                  </>
-                ) : null}
+                {/* Marqueurs etapes selectionnees (sans tracer de trajet) */}
                 {itinPoints.map((pos, i) => (
                   <CircleMarker
                     key={`it-${i}`}
@@ -771,55 +781,7 @@ export default function DestinationDetail() {
                     </Popup>
                   </CircleMarker>
                 ))}
-                {myPosition && (
-                  <Marker position={myPosition} icon={MY_POSITION_ICON}>
-                    <Popup>Ma position</Popup>
-                  </Marker>
-                )}
-                {/* Auto-zoom sur le trajet complet des qu il y a un itineraire */}
-                <FitToRoute
-                  positions={routeGeo || (itinPoints.length > 0 ? linePositions : null)}
-                  fallbackCenter={center}
-                />
-                {/* Ecoute les events pan de la navigation etape par etape */}
-                <PanListener defaultCenter={center} defaultZoom={13} />
               </MapContainer>
-              {/* Barre d actions carte : geoloc + zoom */}
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!navigator.geolocation) { setGeoError('Géolocalisation non supportée'); return }
-                    navigator.geolocation.getCurrentPosition(
-                      (pos) => {
-                        const p = [pos.coords.latitude, pos.coords.longitude]
-                        setMyPosition(p)
-                        setGeoError(null)
-                        window.dispatchEvent(new CustomEvent('wandrail:pan-to', { detail: { center: p, zoom: 17 } }))
-                      },
-                      (err) => setGeoError(err.message || 'Position indisponible'),
-                      { enableHighAccuracy: true, timeout: 8000 },
-                    )
-                  }}
-                  className="inline-flex items-center gap-2 rounded-lg border border-line bg-card px-3 py-2 text-xs font-bold text-ink transition hover:border-blue-500 hover:text-blue-600"
-                >
-                  <span className="h-2.5 w-2.5 rounded-full bg-blue-500 ring-2 ring-blue-500/30" />
-                  Ma position
-                </button>
-                {geoError && (
-                  <span className="text-[11px] text-rose-500">⚠ {geoError}</span>
-                )}
-              </div>
-              {itinPoints.length > 0 && (
-                <NavigationPanel
-                  itinerary={itinerary}
-                  center={center}
-                  legs={useRealLegs ? routeInfo.legs : legs}
-                  totalKm={displayKm}
-                  totalMin={displayMin}
-                  steps={routeInfo?.steps || []}
-                />
-              )}
             </div>
           </div>
         )}
@@ -924,17 +886,19 @@ export default function DestinationDetail() {
                     <button
                       type="button"
                       onClick={() => {
-                        const mapEl = document.getElementById('itineraire-map')
-                        if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        const last = itinerary[itinerary.length - 1]
+                        if (last?.latitude && last?.longitude) {
+                          openGoogleMapsRoute(last.latitude, last.longitude, cleanPoiName(last.nom))
+                        }
                       }}
                       className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-violet py-2.5 text-sm font-bold text-white transition hover:bg-violet-dark"
                     >
-                      <Icon name="map" className="h-4 w-4" />
-                      Voir l'itinéraire sur la carte
+                      <Icon name="external" className="h-4 w-4" />
+                      Démarrer l'itinéraire
                     </button>
                   )}
                   <p className="mt-1.5 text-center text-[0.68rem] text-muted">
-                    Tracé piéton calculé par OpenStreetMap, affiché directement dans l'application
+                    Ouvre Google Maps avec votre position et l'itinéraire à pied
                   </p>
                   <button
                     onClick={() => updateSelected([])}
