@@ -136,31 +136,60 @@ async function fetchPlaceGallery(commune) {
       const r = await fetch(url)
       const j = await r.json()
       const page = Object.values(j?.query?.pages || {})[0]
-      // Filtre agressif : Wikipedia embarque enormement de cartes IGN/INSEE
-      // dans les articles communes (Occupation des sols, Hydrographie,
-      // Orthophoto, geologie...) qui ne sont PAS des photos.
-      // On garde uniquement les vraies photos.
+      // Wikipedia embarque dans les articles communes un tas d'images qui
+      // ne sont PAS des photos actuelles de la ville :
+      // - cartes IGN/INSEE (occupation des sols, hydro, orthophoto, geologie)
+      // - blasons, sceaux, armoiries
+      // - peintures, gravures, portraits historiques (rois, princes...)
+      // - dessins anciens, illustrations, lithographies
+      // On les exclut toutes pour ne garder que les photos modernes.
       const EXCLUDE = [
-        'commons-logo', 'icon', 'logo', 'flag', 'blason',
-        'carte', 'map', 'plan_de_', 'schema', 'graphique', 'diagram',
+        // Cartes / plans / graphiques
+        'commons-logo', 'icon', 'logo', 'flag',
+        'carte', 'map', 'plan_de_', 'plan-de-', 'schema', 'graphique', 'diagram',
         'orthophoto', 'ombrage', 'shaded', 'relief',
-        'coat_of_arms', 'wappen', 'gerb',
-        // INSEE / geologie France : -Sols, -Hydro, -argile, -Orthophoto
+        // Emblemes / signes
+        'blason', 'coat_of_arms', 'coat-of-arms', 'wappen', 'gerb', 'sceau', 'stemma',
+        'armoiries', 'ecusson',
+        // Cartes INSEE / geologie
         '-sols.', '-hydro.', '-orthophoto.', '-argile.', '-geologie',
         'occupation_des_sols', 'usage_des_sols',
+        // Œuvres d art : peintures, gravures, dessins anciens
+        'peinture', 'painting', 'tableau', 'toile_de_', 'huile_sur',
+        'gravure', 'engraving', 'lithographie', 'lithograph', 'aquarelle',
+        'dessin', 'drawing', 'esquisse', 'illustration_',
+        'estampe', 'miniature',
+        // Portraits historiques
+        'portrait', 'buste_de', 'buste-de', 'statue_de', 'effigie',
+        'roi_', 'reine_', 'prince_', 'princesse_', 'duc_', 'duchesse_',
+        'saint_' /* saint personnages : eviter titre 'Saint_Louis_de_France.jpg' */,
+        // Documents historiques
+        'signature_', 'timbre_', 'stamp_', 'medaille', 'medal_',
+        'monnaie_', 'coin_', 'sceau_', 'seal_of_',
+        // Siecles romains -> images tres anciennes
+        '_xviii', '_xvii_', '_xix_', '_xx_siecle',
+        // Documents / manuscrits
+        'manuscrit', 'manuscript', 'parchemin', 'charte',
+        // Divers
+        'caricature', 'poster_', 'affiche_',
       ]
       const startsWithInseeCode = (t) => /^File:\d{5}[-_]/i.test(t) || /^Fichier:\d{5}[-_]/i.test(t)
+      // Rejette les fichiers avec une annee 1800-1950 dans le nom (images
+      // trop anciennes, probablement gravures/tableaux plutot que photos).
+      const looksOld = (t) => /(?:^|[^0-9])(18\d{2}|19[0-4]\d)(?:[^0-9]|$)/.test(t)
       const files = (page?.images || [])
         .map((im) => im.title)
-        .filter((t) => /\.(jpe?g|png|webp)$/i.test(t))
+        // On accepte JPG/JPEG/WEBP mais on rejette PNG (souvent peintures, gravures, cartes)
+        .filter((t) => /\.(jpe?g|webp)$/i.test(t))
         .filter((t) => {
           const low = t.toLowerCase()
           if (EXCLUDE.some((k) => low.includes(k))) return false
           if (startsWithInseeCode(t)) return false
+          if (looksOld(t)) return false
           return true
         })
-        .slice(0, 5)
-      const URL_EXCLUDE = /(sols\.|hydro\.|orthophoto|argile|geologie|carte|blason|ombrage|shaded|relief|occupation.des.sols)/i
+        .slice(0, 6)
+      const URL_EXCLUDE = /(sols\.|hydro\.|orthophoto|argile|geologie|carte|blason|ombrage|shaded|relief|occupation.des.sols|peinture|gravure|dessin|portrait|buste|statue_de|roi_|reine_|xviii|xvii_)/i
       for (const file of files) {
         if (gallery.length >= 3) break
         try {
