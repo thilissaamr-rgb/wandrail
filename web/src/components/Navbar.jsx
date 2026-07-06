@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import Logo from './Logo'
 import LoginModal from './LoginModal'
+import Avatar from './Avatar'
 import { useTheme } from '../lib/theme.jsx'
 import { useAuth } from '../lib/auth.jsx'
 import Icon from './Icon'
@@ -60,10 +61,11 @@ export default function Navbar() {
               <Link
                 to="/profil"
                 aria-label="Mon compte"
-                className="flex h-10 items-center gap-2 rounded-lg bg-eco px-2 text-sm font-semibold text-white transition hover:bg-eco-dark sm:px-3"
+                className="flex h-10 items-center gap-2 rounded-full border border-line bg-card pl-1 pr-3 text-sm font-semibold text-ink transition hover:border-eco/60 hover:shadow-sm"
                 title={user.pseudo}
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 font-bold">{user.pseudo?.[0]?.toUpperCase() || 'U'}</span><span className="hidden sm:inline">Mon espace</span>
+                <Avatar email={user.email} size={32} className="!ring-0" />
+                <span className="hidden sm:inline">{user.pseudo}</span>
               </Link>
             ) : (
               <button

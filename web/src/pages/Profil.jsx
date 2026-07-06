@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Icon from '../components/Icon'
+import Avatar from '../components/Avatar'
+import BadgeIllustration from '../components/BadgeIllustration'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth.jsx'
 import { formatPlaceName } from '../lib/format'
@@ -108,13 +110,9 @@ export default function Profil() {
         }}
       >
         <div className="grid gap-6 lg:grid-cols-[auto_1fr_auto] lg:items-center">
-          {/* Avatar */}
-          <div
-            className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-2xl text-4xl font-black text-white shadow-md"
-            style={{ background: grade.color }}
-          >
-            {user.pseudo?.[0]?.toUpperCase() || 'U'}
-          </div>
+          {/* Avatar upload / silhouette par defaut */}
+          <Avatar email={user.email} size={104} editable />
+
 
           {/* Nom + grade + progression */}
           <div className="min-w-0">
@@ -336,26 +334,36 @@ function BadgeCard({ badge }) {
   const unlocked = badge.unlocked
   return (
     <div
-      className={`rounded-xl border p-4 text-center transition ${
+      className={`group relative overflow-hidden rounded-2xl border p-4 text-center transition-all duration-300 ${
         unlocked
-          ? 'border-line bg-card shadow-sm hover:-translate-y-0.5 hover:shadow-md'
-          : 'border-dashed border-line bg-card2/50 opacity-50'
+          ? 'border-line bg-card shadow-sm hover:-translate-y-1 hover:shadow-lg'
+          : 'border-dashed border-line bg-card2/40'
       }`}
     >
-      <div
-        className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
-        style={{
-          background: unlocked ? badge.color + '20' : 'var(--card2)',
-          color: unlocked ? badge.color : 'var(--muted)',
-        }}
-      >
-        <Icon name={badge.icon} className="h-6 w-6" />
+      {unlocked && (
+        <div
+          className="pointer-events-none absolute inset-0 opacity-40 transition-opacity duration-300 group-hover:opacity-70"
+          style={{
+            background: `radial-gradient(circle at 50% 0%, ${badge.color}22 0%, transparent 60%)`,
+          }}
+        />
+      )}
+      <div className="relative mx-auto flex justify-center">
+        <BadgeIllustration id={badge.id} unlocked={unlocked} className="h-20 w-20" />
+        {!unlocked && (
+          <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-white shadow-md ring-2 ring-card">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+          </span>
+        )}
       </div>
-      <div className="mt-2 text-xs font-bold text-ink">{badge.name}</div>
-      <div className="mt-1 text-[0.65rem] leading-relaxed text-muted">{badge.desc}</div>
-      {!unlocked && (
-        <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[0.6rem] font-semibold text-muted">
-          Verrouillé
+      <div className={`relative mt-3 text-sm font-black tracking-tight ${unlocked ? 'text-ink' : 'text-muted'}`}>
+        {badge.name}
+      </div>
+      <div className="relative mt-1 text-[10px] leading-relaxed text-muted">{badge.desc}</div>
+      {unlocked && (
+        <div className="relative mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+          <svg viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+          Débloqué
         </div>
       )}
     </div>
