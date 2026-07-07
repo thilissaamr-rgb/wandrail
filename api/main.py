@@ -25,6 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from db import engine
 from analyst import build_decision_support, build_ml_metrics, build_overview, build_pipeline
+from chat import answer as chat_answer
 from navitia import next_departures
 from quality import build_data_quality_report
 from security import create_access_token, current_user_id, hash_password, verify_password
@@ -636,3 +637,14 @@ def remove_favorite(data: FavoriteIn, user_id: int = Depends(current_user_id)):
             {"u": user_id, "d": data.destination},
         )
     return {"ok": True, "favorite": False}
+
+
+# ── Chatbot ───────────────────────────────────────────────────────
+class ChatIn(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+
+
+@app.post("/api/chat")
+def chat(data: ChatIn):
+    """Chatbot Wandrail — repond aux questions en interrogeant la base."""
+    return chat_answer(data.question, engine)

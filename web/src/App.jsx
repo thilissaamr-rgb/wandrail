@@ -4,6 +4,7 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
 import ErrorBoundary from './components/ErrorBoundary'
+import Chatbot from './components/Chatbot'
 
 const Home = lazy(() => import('./pages/Home'))
 const Destinations = lazy(() => import('./pages/Destinations'))
@@ -65,6 +66,7 @@ export default function App() {
         </div>
       </main>
       <Footer />
+      <Chatbot />
     </div>
   )
 }

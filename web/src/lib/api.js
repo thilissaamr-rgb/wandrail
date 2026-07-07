@@ -72,4 +72,7 @@ export const api = {
   favorites: () => get('/api/favorites', true),
   addFavorite: (_userId, destination) => send('POST', '/api/favorites', { destination }),
   removeFavorite: (_userId, destination) => send('DELETE', '/api/favorites', { destination }),
+
+  // Chatbot
+  chat: (question) => send('POST', '/api/chat', { question }),
 }
