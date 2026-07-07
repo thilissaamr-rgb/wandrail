@@ -197,7 +197,7 @@ export default function Carte() {
     <div className="mx-auto max-w-page px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-eco">Explorer les destinations</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-eco">Explorer la France en train</p>
           <h1 className="mt-1 text-3xl font-black tracking-tighter text-ink">Où le train peut-il vous emmener ?</h1>
           <p className="mt-1 text-sm text-muted">{loading ? 'Chargement des gares…' : `${visibleGares.length.toLocaleString('fr-FR')} destinations — zoomez pour révéler les gares.`}</p>
         </div>

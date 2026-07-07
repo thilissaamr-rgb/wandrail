@@ -184,7 +184,7 @@ export default function Home() {
                     onChange={(e) => setDep(e.target.value)}
                     className="mt-0.5 cursor-pointer border-0 bg-transparent p-0 text-sm font-semibold text-ink outline-none"
                   >
-                    <option value="">Tous les départements</option>
+                    <option value="">Toute la France</option>
                     {deps.slice(0, 30).map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
