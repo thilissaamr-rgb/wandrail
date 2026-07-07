@@ -126,7 +126,7 @@ Le projet suit une approche **itérative incrémentale** inspirée de Scrum :
 | **Git / GitHub** | Versioning, branches, historique |
 | **Render** | Déploiement continu (auto-deploy sur push) |
 | **VS Code** | IDE principal |
-| **Claude Code** | Assistant IA pour accélérer le développement |
+| **Terminal / CLI** | Scripts Python, gestion Git, debugging |
 
 ### 3.3 Versioning
 
@@ -556,7 +556,7 @@ Le score est calculé automatiquement par `api/quality.py` selon 4 dimensions :
 
 Le chatbot Wandrail est un système de **question-réponse basé sur des règles** (rule-based QA) qui interroge directement la base de données PostgreSQL.
 
-**Choix technique :** Pas de LLM externe (GPT, Claude API) pour éviter :
+**Choix technique :** Pas de LLM externe pour éviter :
 - Les coûts d'API
 - La latence réseau
 - Les hallucinations sur les données

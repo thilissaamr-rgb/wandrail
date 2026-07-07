@@ -53,7 +53,7 @@ notebooks/.ipynb_checkpoints/
 *_local_*.log
 *_local_*.txt
 
-# ── Streamlit (abandonné - peut contenir secrets.toml) ──────────
+# ── Anciens prototypes ──────────────────────────────────────────
 .streamlit/
 app/
 
@@ -65,6 +65,13 @@ Wandrail_*.zip
 tmp/
 notebooks/
 .claude/
+
+# ── Fichiers temporaires Word et docx générés ──────────────────
+~$*
+docs/*.docx
+
+# ── Images générées pour le docx (rejouables via generate_docx.py) ──
+docs/_img/
 
 # ── Dumps SQL lourds (base rejouable via scripts/) ──────────────
 data/dumps/*.sql
