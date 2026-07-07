@@ -77,6 +77,8 @@ cd ../web && npm install && npm run dev
 
 Pipeline orchestré par Airflow ([`airflow/dags/tourisme_dag.py`](airflow/dags/tourisme_dag.py)).
 
+Guide déploiement + recharge data nationale : [`docs/deployment.md`](docs/deployment.md).
+
 ## License
 
 [MIT](LICENSE) © 2026 Thilissa Amara
