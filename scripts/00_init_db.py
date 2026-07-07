@@ -12,10 +12,17 @@ sys.stdout.reconfigure(encoding='utf-8')
 load_dotenv()
 
 def get_engine():
-    return create_engine(
-        f"postgresql://{os.getenv('DB_USER','postgres')}:{os.getenv('DB_PASSWORD','00000')}"
-        f"@{os.getenv('DB_HOST','localhost')}:{os.getenv('DB_PORT','5434')}/{os.getenv('DB_NAME','tourisme_train')}"
-    )
+    # DATABASE_URL en priorite (Supabase, Render, etc.) sinon composition
+    # depuis DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME (dev local Docker).
+    from urllib.parse import quote
+    url = os.getenv('DATABASE_URL')
+    if not url:
+        pwd = quote(os.getenv('DB_PASSWORD', '00000'), safe='')
+        url = (
+            f"postgresql://{os.getenv('DB_USER','postgres')}:{pwd}"
+            f"@{os.getenv('DB_HOST','localhost')}:{os.getenv('DB_PORT','5434')}/{os.getenv('DB_NAME','tourisme_train')}"
+        )
+    return create_engine(url)
 
 engine = get_engine()
 
