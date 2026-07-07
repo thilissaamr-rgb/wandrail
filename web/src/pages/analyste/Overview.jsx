@@ -162,7 +162,7 @@ function TreeVisual({ count = 5 }) {
 
 function KpiStrip({ stats, overview, decision, distMoyenne }) {
   const kpiTiles = [
-    { icon: 'train', label: 'Gares', value: stats.nb_gares, sub: 'Réseau national', color: DATAVIZ.train },
+    { icon: 'train', label: 'Gares', value: stats.nb_gares, sub: 'Réseau ferroviaire', color: DATAVIZ.train },
     { icon: 'pin', label: 'Lieux référencés', value: stats.nb_lieux, sub: 'Points d\'intérêt', color: DATAVIZ.eco },
     { icon: 'star', label: 'Recommandations', value: overview.kpi?.nb_recommandations || 25, sub: 'Générées par le ML', color: DATAVIZ.purple },
     { icon: 'leaf', label: 'CO₂ / trajet moyen', value: Math.round(distMoyenne * (CO2_G_PER_KM_CAR - CO2_G_PER_KM_TRAIN) / 1000), unit: 'kg', sub: 'Évité train vs voiture', color: DATAVIZ.ecoLight },

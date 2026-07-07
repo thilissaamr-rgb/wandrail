@@ -31,7 +31,7 @@ from security import create_access_token, current_user_id, hash_password, verify
 
 app = FastAPI(
     title="Wandrail API",
-    description="Donnees nationales du tourisme accessible en train en France",
+    description="Donnees du tourisme accessible en train",
     version="2.0.0",
 )
 

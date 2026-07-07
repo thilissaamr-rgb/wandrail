@@ -30,7 +30,7 @@ export default function AnalystML() {
           value={silhouette}
           max={1}
           color="#0A5C36"
-          detail="Sur les 287 498 points d'intérêt de France"
+          detail="Sur l'ensemble des points d'intérêt du périmètre"
         />
         <StabilityCard profiles={profiles} />
       </section>

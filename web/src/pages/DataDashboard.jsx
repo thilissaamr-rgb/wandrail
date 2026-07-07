@@ -38,7 +38,7 @@ export default function DataDashboard() {
     <div className="mx-auto max-w-page px-6 py-10">
       <AnalystHeading
         eyebrow="Qualité de donnée"
-        title="Le cockpit de contrôle du pipeline national"
+        title="Le cockpit de contrôle du pipeline de données"
         description="Cet écran défend la crédibilité du projet : complétude, anomalies, doublons, couverture et destinations réellement exploitables."
       />
 

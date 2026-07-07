@@ -50,7 +50,7 @@ export default function AnalystDecision() {
           Où agir, où valoriser, où investir l'effort éditorial.
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
-          Cette vue transforme les données nationales en <strong className="text-ink">décisions
+          Cette vue transforme les données en <strong className="text-ink">décisions
           lisibles</strong> : destinations à fort potentiel, gares sous-exploitées,
           départements à valoriser, argument carbone.
         </p>

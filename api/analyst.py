@@ -63,7 +63,7 @@ def build_pipeline(connection) -> dict:
             "rows": counts["silver"]["rows"],
             "tables": counts["silver"]["tables"],
             "controls": ["codes UIC uniques", "coordonnées France", "catégories normalisées", "doublons POI"],
-            "transformations": ["filtrage ferroviaire national", "BallTree / Haversine gare-POI", "temps de marche estimé"],
+            "transformations": ["filtrage ferroviaire", "BallTree / Haversine gare-POI", "temps de marche estimé"],
         },
         {
             "id": "gold",

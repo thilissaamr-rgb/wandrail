@@ -73,7 +73,7 @@ export default function Destinations() {
     <div className="mx-auto max-w-page px-6 py-10">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-ink">Destinations</h1>
-        <p className="mt-1 text-sm text-muted">Recherche et filtres sur le catalogue national.</p>
+        <p className="mt-1 text-sm text-muted">Recherche et filtres sur le catalogue de destinations.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">

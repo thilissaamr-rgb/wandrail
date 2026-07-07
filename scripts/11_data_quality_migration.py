@@ -11,7 +11,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 load_dotenv()
 
 engine = create_engine(
-    f"postgresql+psycopg://{os.getenv('DB_USER', 'postgres')}:{os.getenv('DB_PASSWORD', '00000')}"
+    f"postgresql+psycopg2://{os.getenv('DB_USER', 'postgres')}:{os.getenv('DB_PASSWORD', '00000')}"
     f"@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '5434')}"
     f"/{os.getenv('DB_NAME', 'tourisme_train')}"
 )

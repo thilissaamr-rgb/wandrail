@@ -18,9 +18,9 @@ if not DATABASE_URL:
 # On reecrit le schema de l'URL pour que SQLAlchemy choisisse psycopg v3,
 # quelle que soit la forme fournie (postgres:// ou postgresql://).
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL[len("postgres://"):]
+    DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgres://"):]
 elif DATABASE_URL.startswith("postgresql://"):
-    DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL[len("postgresql://"):]
+    DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len("postgresql://"):]
 
 # pool_pre_ping evite les connexions mortes (le pooler Supabase coupe les
 # connexions inactives). pool_recycle force le renouvellement avant timeout.

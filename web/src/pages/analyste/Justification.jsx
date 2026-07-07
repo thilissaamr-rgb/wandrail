@@ -134,7 +134,7 @@ function VerdictBanner({ ml, stats }) {
       value: fmt(nbLieux),
       unit: 'lieux',
       status: 'ok',
-      hint: 'Toute la France',
+      hint: 'Périmètre couvert',
     },
     {
       label: 'K optimal',
