@@ -14,16 +14,18 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     DATABASE_URL = "postgresql://postgres:00000@localhost:5434/tourisme_train"
 
-# On utilise le driver psycopg v3 (wheels disponibles jusqu'a Python 3.14).
-# On reecrit le schema de l'URL pour que SQLAlchemy choisisse psycopg v3,
-# quelle que soit la forme fournie (postgres:// ou postgresql://).
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL[len("postgres://"):]
-elif DATABASE_URL.startswith("postgresql://") and "+psycopg" not in DATABASE_URL:
-    DATABASE_URL = "postgresql+psycopg://" + DATABASE_URL[len("postgresql://"):]
+# Auto-detect driver: psycopg v3 on Render, psycopg2 local
+try:
+    import psycopg  # noqa: F401
+    _driver = "psycopg"
+except ImportError:
+    _driver = "psycopg2"
 
-# pool_pre_ping evite les connexions mortes (le pooler Supabase coupe les
-# connexions inactives). pool_recycle force le renouvellement avant timeout.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = f"postgresql+{_driver}://" + DATABASE_URL[len("postgres://"):]
+elif DATABASE_URL.startswith("postgresql://") and "+" not in DATABASE_URL.split("://")[0]:
+    DATABASE_URL = f"postgresql+{_driver}://" + DATABASE_URL[len("postgresql://"):]
+
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
