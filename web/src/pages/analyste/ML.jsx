@@ -32,6 +32,7 @@ export default function AnalystML() {
           max={1}
           color="#0A5C36"
           detail="Sur l'ensemble des points d'intérêt du périmètre"
+          bestK={bestK}
         />
         <StabilityCard profiles={profiles} />
       </section>
@@ -107,7 +108,7 @@ const CLUSTER_COLORS = ['#0A5C36', '#1F6FEB', '#E76F51', '#8B5CF6', '#F59E0B', '
 
 // ─── Composants graphiques ────────────────
 
-function Gauge({ title, subtitle, value, max, color, detail }) {
+function Gauge({ title, subtitle, value, max, color, detail, bestK }) {
   const pct = Math.min(100, (value / max) * 100)
   const circumference = 2 * Math.PI * 45
   const offset = circumference - (pct / 100) * circumference
