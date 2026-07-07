@@ -22,11 +22,11 @@ import { AXIS_COLOR, CATEGORIES, DATAVIZ, GRID_COLOR, TOOLTIP_STYLE, catColor } 
 
 // Onglet Profils : cinq profils voyageurs, leurs top destinations + affinites categories.
 const PROFILS = [
-  { key: 'Solo', icon: 'user', color: DATAVIZ.train, dominance: { Culture: 90, Patrimoine: 80, Gastronomie: 60, Nature: 45, Sport: 30 } },
-  { key: 'Couple', icon: 'heart', color: DATAVIZ.pink, dominance: { Gastronomie: 90, Bien_etre: 80, Culture: 65, Nature: 55, Patrimoine: 50 } },
-  { key: 'Famille', icon: 'users', color: DATAVIZ.gold, dominance: { Loisirs: 95, Nature: 80, Sport: 70, Patrimoine: 45, Culture: 40 } },
-  { key: 'Entre amis', icon: 'star', color: DATAVIZ.eco, dominance: { Sport: 85, Gastronomie: 75, Culture: 55, Nature: 65, Loisirs: 80 } },
-  { key: 'Senior', icon: 'castle', color: DATAVIZ.purple, dominance: { Patrimoine: 95, Culture: 85, Bien_etre: 70, Gastronomie: 60, Nature: 55 } },
+  { key: 'Solo', icon: 'user', color: DATAVIZ.train, dominance: { Culture: 90, Patrimoine: 80, Restauration: 60, Nature: 45, Loisirs: 30 } },
+  { key: 'Couple', icon: 'heart', color: DATAVIZ.pink, dominance: { Restauration: 90, Hebergement: 80, Culture: 65, Nature: 55, Patrimoine: 50 } },
+  { key: 'Famille', icon: 'users', color: DATAVIZ.gold, dominance: { Loisirs: 95, Nature: 80, Hebergement: 70, Patrimoine: 45, Culture: 40 } },
+  { key: 'Entre amis', icon: 'star', color: DATAVIZ.eco, dominance: { Loisirs: 85, Restauration: 75, Culture: 55, Nature: 65, Hebergement: 80 } },
+  { key: 'Senior', icon: 'castle', color: DATAVIZ.purple, dominance: { Patrimoine: 95, Culture: 85, Nature: 70, Restauration: 60, Hebergement: 55 } },
 ]
 
 const fmt = (n) => Number(n || 0).toLocaleString('fr-FR')
@@ -49,7 +49,7 @@ export default function Profils() {
 
   // Prepare data pour RadarChart comparatif (categories x profils)
   const radarData = useMemo(() => {
-    const cats = ['Culture', 'Patrimoine', 'Gastronomie', 'Nature', 'Sport', 'Loisirs', 'Bien_etre']
+    const cats = ['Culture', 'Patrimoine', 'Restauration', 'Nature', 'Loisirs', 'Hebergement']
     return cats.map((cat) => {
       const row = { categorie: cat.replace('_', '-') }
       for (const p of PROFILS) {

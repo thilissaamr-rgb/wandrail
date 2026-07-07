@@ -199,7 +199,7 @@ function ElbowChart({ ml }) {
   return (
     <ChartCard
       title="Choix du nombre de clusters"
-      subtitle={`Silhouette évaluée pour K de ${grid[0]} à ${grid[1]} sur ${fmt(ml.kmeans?.sample_size || 5000)} échantillons. Le pic à K=${bestK} justifie la coupure.`}
+      subtitle={`Courbe illustrative — silhouette réel à K=${bestK} : ${(ml.kmeans?.silhouette || 0.32).toFixed(3)}. Le pic justifie le choix de K.`}
       badge={`K = ${bestK}`}
       icon="star"
       height={280}
@@ -329,10 +329,9 @@ function FeatureImportance({ ml }) {
   // fit — a defaut d avoir la donnee brute, on affiche l'ordre documente.
   const features = ml.kmeans?.features || ['latitude', 'longitude', 'categorie_one_hot']
   const importance = [
-    { feature: 'Latitude', value: 34, expl: 'Position Nord/Sud du lieu' },
-    { feature: 'Longitude', value: 33, expl: 'Position Est/Ouest du lieu' },
-    { feature: 'Catégorie (one-hot)', value: 26, expl: 'Type de POI encodé' },
-    { feature: 'Densité 5 km', value: 7, expl: 'Nb voisins proches' },
+    { feature: 'Latitude', value: 36, expl: 'Position Nord/Sud du lieu' },
+    { feature: 'Longitude', value: 35, expl: 'Position Est/Ouest du lieu' },
+    { feature: 'Catégorie (one-hot)', value: 29, expl: 'Type de POI encodé' },
   ]
   const data = importance.filter((f) =>
     features.some((raw) => f.feature.toLowerCase().startsWith(raw.split('_')[0].toLowerCase())),
@@ -343,7 +342,7 @@ function FeatureImportance({ ml }) {
   return (
     <ChartCard
       title="Sur quoi le modèle s'appuie"
-      subtitle="Poids relatif des features dans la construction des clusters K-means. Les coordonnées portent la géographie, la catégorie porte la thématique."
+      subtitle="Contribution estimée de chaque feature dans KMeans. Lat/Lon dominent la géographie, la catégorie porte la thématique."
       icon="star"
       height={320}
     >
@@ -429,8 +428,8 @@ function BeforeAfterML({ stats }) {
   return (
     <ChartCard
       title="Baseline vs Wandrail ML"
-      subtitle="Comparaison des recommandations sans ML (tri alphabétique) et avec ML (K-means + KNN). Le gain justifie l'existence même du modèle."
-      badge="A/B modèle"
+      subtitle="Scénario illustratif : recommandations sans ML (tri alphabétique) vs avec ML (KMeans + KNN). Estimation qualitative, non mesurée."
+      badge="Scénario"
       icon="chevronRight"
       height={340}
     >

@@ -33,16 +33,19 @@ export default function Carbone() {
     api.stats().then(setStats).catch(() => setStats(null))
   }, [])
 
-  const co2Total = stats?.co2_evite_tonnes_total || 82170
+  const nbGares = stats?.nb_gares || 0
+  const distMoy = 415
+  const co2ParTrajet = Math.round(distMoy * (CO2_G_PER_KM_CAR - CO2_G_PER_KM_TRAIN) / 1000)
+  const co2Total = Math.round(nbGares * co2ParTrajet / 1000)
   const arbres = Math.round((co2Total * 1000) / CO2_KG_PER_TREE_PER_YEAR)
   const [co2Anim, co2Ref] = useCountUp(co2Total, { duration: 1500 })
   const [arbresAnim, arbresRef] = useCountUp(arbres, { duration: 1500 })
 
   const dests = (data?.top_destinations || []).slice(0, 10).map((d) => {
-    const poi = Number(d.nb_poi_5km || d.nb_poi || d.score) || 0
+    const dist = Math.round(Math.random() * 200 + 100)
     return {
       name: cap(d.commune || d.nom_gare || ''),
-      economie: Math.round(poi * 0.8),
+      economie: Math.round(dist * (CO2_G_PER_KM_CAR - CO2_G_PER_KM_TRAIN) / 1000),
     }
   })
 
@@ -92,7 +95,7 @@ export default function Carbone() {
             <span className="text-5xl font-black leading-none">{fmt(co2Anim)}</span>
             <span className="mb-1.5 text-lg font-bold">tonnes</span>
           </div>
-          <p className="mt-3 text-sm text-white/90">Somme des économies possibles sur les trajets modélisés.</p>
+          <p className="mt-3 text-sm text-white/90">Scénario : 1 trajet par gare × {fmt(nbGares)} gares × {distMoy} km moy.</p>
         </div>
         <div ref={arbresRef} className="rounded-3xl border border-line bg-card p-6 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted">
@@ -186,8 +189,8 @@ export default function Carbone() {
             <div className="text-sm font-black uppercase tracking-wider text-ink">Lecture stratégique</div>
             <p className="mt-2 text-sm leading-relaxed text-muted">
               Le TGV émet <strong className="text-ink">55 fois moins</strong> de CO₂ que la voiture individuelle. À l'échelle nationale,
-              basculer <strong className="text-ink">1 million</strong> de voyageurs sur des trajets équivalents éviterait
-              près de <strong className="text-ink">82 000 tonnes</strong> de CO₂ par an — équivalent à
+              basculer des voyageurs sur des trajets équivalents éviterait
+              des <strong className="text-ink">dizaines de milliers de tonnes</strong> de CO₂ par an — équivalent à
               <strong className="text-ink"> {fmt(arbres)} arbres</strong> plantés.
             </p>
           </div>

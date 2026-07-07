@@ -206,8 +206,8 @@ function KpiTile({ icon, label, value, unit, sub, color }) {
 
 function CategoriesPie({ categories }) {
   const data = (categories || []).slice(0, 8).map((c, i) => ({
-    name: cap(c.categorie || c.name || `Cat ${i}`),
-    value: Number(c.total || c.nb_poi || c.count) || 0,
+    name: cap(c.label || c.categorie || c.name || `Cat ${i}`),
+    value: Number(c.nb || c.total || c.nb_poi || c.count) || 0,
     fill: catColor(i),
   }))
   const total = data.reduce((s, d) => s + d.value, 0)
@@ -295,9 +295,9 @@ function TopDestinations({ destinations }) {
 
 function TopDepartements({ departements }) {
   const data = (departements || []).slice(0, 10).map((d) => ({
-    name: d.departement || d.name || '—',
+    name: d.label || d.departement || d.name || '—',
     gares: Number(d.nb_gares) || 0,
-    poi: Number(d.nb_poi_5km || d.total_poi) || 0,
+    poi: Number(d.nb_poi_5km || d.nb || d.total_poi) || 0,
   }))
 
   return (

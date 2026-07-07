@@ -31,13 +31,13 @@ export default function Tourisme() {
   if (!data) return <Skeleton />
 
   const cats = (data.top_categories || []).slice(0, 8).map((c, i) => ({
-    name: cap(c.categorie || c.name || `Cat ${i}`),
-    value: Number(c.nb_poi || c.count || c.total) || 0,
+    name: cap(c.label || c.categorie || c.name || `Cat ${i}`),
+    value: Number(c.nb || c.nb_poi || c.count || c.total) || 0,
     fill: catColor(i),
   }))
   const deps = (data.top_departements || []).slice(0, 10).map((d) => ({
-    name: d.departement || d.name || '—',
-    poi: Number(d.nb_poi || d.nb_poi_5km || d.count || d.total_poi) || 0,
+    name: d.label || d.departement || d.name || '—',
+    poi: Number(d.nb_poi || d.nb_poi_5km || d.nb || d.count) || 0,
     gares: Number(d.nb_gares) || 0,
   }))
   const dests = (data.top_destinations || []).slice(0, 10).map((d) => ({
@@ -65,8 +65,8 @@ export default function Tourisme() {
 
       {/* KPI top */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi label="POI touristiques" value={data.kpi?.poi_count} sub="Recensés en Silver" color={DATAVIZ.eco} icon="pin" />
-        <Kpi label="Gares desservies" value={data.kpi?.gares_count} sub="Points d'accès" color={DATAVIZ.train} icon="train" />
+        <Kpi label="POI touristiques" value={data.kpi?.nb_poi || data.kpi?.poi_count} sub="Recensés en Silver" color={DATAVIZ.eco} icon="pin" />
+        <Kpi label="Gares desservies" value={data.kpi?.nb_gares || data.kpi?.gares_count} sub="Points d'accès" color={DATAVIZ.train} icon="train" />
         <Kpi label="Départements" value={deps.length} sub="Couverture" color={DATAVIZ.gold} icon="pin" />
         <Kpi label="Catégories POI" value={cats.length} sub="Taxonomie DATAtourisme" color={DATAVIZ.purple} icon="star" />
       </div>

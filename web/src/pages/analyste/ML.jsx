@@ -16,6 +16,7 @@ export default function AnalystML() {
   if (!data) return <Skel />
 
   const silhouette = data.kmeans?.silhouette || 0
+  const bestK = data.kmeans?.best_k || data.kmeans?.n_clusters || 14
   const distribution = (data.kmeans?.distribution || []).slice(0, 6)
   const maxCluster = Math.max(...distribution.map(d => d.nb_poi || 0), 1)
   const profiles = Object.entries(data.knn?.metrics_by_profile || {})
@@ -44,7 +45,7 @@ export default function AnalystML() {
             n={1}
             icon="map"
             title="On regroupe les lieux"
-            text="14 groupes de points d'intérêt selon leur position et leur catégorie"
+            text={`${bestK} groupes de points d'intérêt selon leur position et leur catégorie`}
             color="#0A5C36"
           />
           <Step
@@ -144,7 +145,7 @@ function Gauge({ title, subtitle, value, max, color, detail }) {
           <div className="text-sm leading-relaxed text-muted">{detail}</div>
           <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-eco/10 px-2.5 py-1 text-xs font-bold text-eco">
             <Icon name="star" className="h-3.5 w-3.5" />
-            Optimum k = {14}
+            Optimum k = {bestK}
           </div>
         </div>
       </div>

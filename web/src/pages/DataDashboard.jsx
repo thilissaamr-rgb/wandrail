@@ -126,9 +126,9 @@ export default function DataDashboard() {
 
 function MiniStat({ label, value }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-slate-400">{label}</div>
-      <div className="mt-2 text-2xl font-black text-white">{value}</div>
+    <div className="rounded-2xl border border-line bg-card2 p-4">
+      <div className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-muted">{label}</div>
+      <div className="mt-2 text-2xl font-black text-ink">{value}</div>
     </div>
   )
 }
@@ -137,10 +137,10 @@ function MethodLink({ to, title, text }) {
   return (
     <Link
       to={to}
-      className="block rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition hover:border-cyan-400/30 hover:bg-cyan-400/[0.05]"
+      className="block rounded-2xl border border-line bg-card2 p-4 transition hover:border-eco/30 hover:bg-eco/5"
     >
-      <div className="text-sm font-bold text-white">{title}</div>
-      <div className="mt-2 text-xs leading-6 text-slate-400">{text}</div>
+      <div className="text-sm font-bold text-ink">{title}</div>
+      <div className="mt-2 text-xs leading-6 text-muted">{text}</div>
     </Link>
   )
 }
