@@ -731,7 +731,7 @@ export default function DestinationDetail() {
           </div>
         )}
 
-        {/* Mobilité locale — masqué si aucune donnée */}
+        {/* Mobilité locale — vraies données silver.mobilites */}
         {mobilites && (mobilites.totaux?.velo > 0 || mobilites.totaux?.bus > 0 || mobilites.totaux?.tram > 0 || mobilites.totaux?.ferry > 0) && (
         <div className="mt-10">
           <h2 className="mb-1 text-2xl font-black tracking-tighter text-ink">Mobilité locale</h2>
