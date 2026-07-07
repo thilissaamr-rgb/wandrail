@@ -268,7 +268,7 @@ def destinations(
     profil: str | None = None,
     min_score: float = 0.0,
     sort: str = Query("score", pattern="^(score|nom|poi)$"),
-    limit: int = Query(60, ge=1, le=5000),
+    limit: int = Query(30, ge=1, le=200),
 ):
     """Liste filtrable des destinations (gares enrichies)."""
     clauses = [

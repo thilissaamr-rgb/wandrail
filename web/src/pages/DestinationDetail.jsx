@@ -731,7 +731,8 @@ export default function DestinationDetail() {
           </div>
         )}
 
-        {/* Mobilité locale — vraies données silver.mobilites */}
+        {/* Mobilité locale — masqué si aucune donnée */}
+        {mobilites && (mobilites.totaux?.velo > 0 || mobilites.totaux?.bus > 0 || mobilites.totaux?.tram > 0 || mobilites.totaux?.ferry > 0) && (
         <div className="mt-10">
           <h2 className="mb-1 text-2xl font-black tracking-tighter text-ink">Mobilité locale</h2>
           <p className="mb-4 text-sm text-muted">Se déplacer autour de la gare, sans voiture. Cliquez pour voir les stations.</p>
@@ -753,6 +754,7 @@ export default function DestinationDetail() {
             />
           )}
         </div>
+        )}
 
         {/* Carte */}
         {d.latitude && d.longitude && (

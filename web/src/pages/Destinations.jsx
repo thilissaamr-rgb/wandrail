@@ -37,7 +37,7 @@ export default function Destinations() {
     setLoading(true)
     const source = voyageur
       ? api.recommandations(voyageur)
-      : api.destinations({ q, departement, profil, categorie, sort, limit: 60 })
+      : api.destinations({ q, departement, profil, categorie, sort, limit: 30 })
 
     source
       .then((rows) => {

@@ -171,7 +171,7 @@ export default function Carte() {
   useEffect(() => {
     setLoading(true)
     setSelected(null)
-    api.destinations({ limit: 5000, categorie: category })
+    api.destinations({ limit: 200, categorie: category })
       .then(setGares)
       .catch(() => setGares([]))
       .finally(() => setLoading(false))
